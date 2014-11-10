@@ -1,20 +1,22 @@
-{:dev
-  {
-   :env
-    {
+{
+ :dev {
+   :ragtime { :database "jdbc:postgresql://127.0.0.1:5432/hivewing-dev?user=hivewing&password=hivewing"}
+   :env {
      :hivewing-aws-access-key "123abc",
      :hivewing-aws-secret-key "123abc",
-     :hivewing-ddb-endpoint   "http://localhost:3800",
+     :hivewing-ddb-endpoint   "http://127.0.0.1:3800",
      :hivewing-ddb-worker-config-table "HivewingWorkerConfiguration.v1"
-     :hivewing-sql-connection-string "//localhost:5432/hivewing-dev?user=hivewing&password=hivewing"
+     :hivewing-sql-connection-string "//127.0.0.1:5432/hivewing-dev?user=hivewing&password=hivewing"
     },
-   :test
-    {
+   },
+ :test {
+   :ragtime { :database "jdbc:postgresql://127.0.0.1:5432/hivewing-test?user=hivewing&password=hivewing" }
+    :env {
      :hivewing-aws-access-key "123abc",
      :hivewing-aws-secret-key "123abc",
-     :hivewing-ddb-endpoint   "http://localhost:3800",
+     :hivewing-ddb-endpoint   "http://127.0.0.1:3800",
      :hivewing-ddb-worker-config-table "test.HivewingWorkerConfiguration.v1"
-     :hivewing-sql-connection-string "//localhost:5432/hivewing-test?user=hivewing&password=hivewing"
+     :hivewing-sql-connection-string "//127.0.0.1:5432/hivewing-test?user=hivewing&password=hivewing"
     }
   }
 }

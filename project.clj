@@ -5,8 +5,11 @@
                  [org.clojure/clojure "1.6.0"]
                  [environ "1.0.0"]
                  [rotary "0.4.1"]
-                 [org.clojure/java.jdbc "0.3.2"]
+                 [org.clojure/java.jdbc "0.3.6"]
                  [postgresql "9.1-901.jdbc4"]
+                 [ragtime "0.3.7"]
                  ]
-  :plugins [[lein-environ "1.0.0"]]
+  :plugins [[lein-environ "1.0.0"]
+            [ragtime/ragtime.lein "0.3.7"]]
+  :ragtime {:migrations ragtime.sql.files/migrations}
   )
