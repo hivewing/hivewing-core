@@ -3,12 +3,13 @@
 A Clojure library designed to ... well, that part is up to you.
 
 ## Usage
+ Set up the postgres database with user hivewing / hivewing.
+ create the hivewing-dev database (creatdb hivewing-dev)
+ create a test database too (createdb hivewing-test)
 
-FIXME
+ migrate
+ lein ragtime migrate
 
 ## License
 
-Copyright © 2014 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+Copyright © 2014 Hivewing.io
