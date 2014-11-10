@@ -1,12 +1,7 @@
 (ns hivewing-core.worker-config
   (:require [rotary.client :refer :all]
+            [hivewing-core.configuration :refer [aws-credentials]]
             [environ.core  :refer [env]]))
-
-(def ^:private aws-credentials
-  "The AWS Credentials to connect to ddb"
-  {:access-key (env :hivewing-aws-access-key),
-   :secret-key (env :hivewing-aws-secret-key),
-   :endpoint   (env :hivewing-ddb-endpoint)})
 
 (def ddb-worker-table
   "The DDB table which stores the configuration"
