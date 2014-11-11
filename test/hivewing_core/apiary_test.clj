@@ -10,4 +10,8 @@
         (is apiary-result)
         (is (= (:beekeeper_uuid beekeeper-uuid)))
         ))
-  )
+  (testing "create without a beekeeper"
+    (let [result (try
+                    (apiary-create {:beekeeper_uuid nil})
+                    (catch org.postgresql.util.PSQLException e (str "error")))]
+      (is (= "error" result)))))
