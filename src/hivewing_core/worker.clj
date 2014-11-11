@@ -6,11 +6,11 @@
   "Get the data for worker record.  You pass in the worker via the worker uuid.  Returns the data
   as a hashmap."
   [worker-uuid]
-  (jdbc/query sql-db ["SELECT * FROM workers WHERE uuid = ?" worker-uuid]))
+  (jdbc/query sql-db ["SELECT * FROM workers WHERE uuid = ? LIMIT 1" worker-uuid] :result-set-fn first))
 
 (defn worker-create
-  [apiary-uuid]
-  (println "TBD"))
+  [parameters]
+  (first (jdbc/insert! sql-db :workers parameters)))
 
 (defn worker-join-hive
   "Add a worker to a given hive. Removing it from a hive it was in before.
@@ -26,7 +26,8 @@
 
 (defn worker-reset-access-token
   [worker-uuid]
-  (jdbs/insert! sql-db worker-uuid {:access_token "uuid_generate_v4()"}))
+  (jdbc/execute! sql-db ["UPDATE workers SET access_token = uuid_generate_v4() WHERE uuid = ?" worker-uuid])
+  (worker-get worker-uuid))
 
 
 ;(jdbc/insert! sql-db :workers {:name "first worker"})

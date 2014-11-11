@@ -1,0 +1,1 @@
+ALTER TABLE workers ALTER COLUMN hive_uuid SET NOT NULL;
