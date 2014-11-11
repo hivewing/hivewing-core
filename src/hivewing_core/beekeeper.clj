@@ -5,7 +5,7 @@
 (defn beekeeper-get
   "Get the information for a given beekeeper"
   [beekeeper-uuid]
-  (jdbs/query sql-db ["SELECT * FROM beekeepers WHERE uuid = ?" beekeeper-uuid]))
+  (jdbc/query sql-db ["SELECT * FROM beekeepers WHERE uuid = ?" beekeeper-uuid]))
 
 (defn beekeeper-create
   "Create a new beekeeper"

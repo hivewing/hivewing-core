@@ -5,7 +5,7 @@
 (defn apiary-get
   "Gets the data for a given apiary"
   [apiary-uuid]
-  (jdbs/query sql-db ["SELECT * FROM apiaries WHERE uuid = ?" apiary-uuid]))
+  (jdbc/query sql-db ["SELECT * FROM apiaries WHERE uuid = ?" apiary-uuid]))
 
 (defn apiary-create
   "Creates a new apiary"

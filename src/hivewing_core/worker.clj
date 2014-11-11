@@ -24,6 +24,10 @@
   [worker-uuid apiary-uuid]
   (println "TODO"))
 
+(defn worker-reset-access-token
+  [worker-uuid]
+  (jdbs/insert! sql-db worker-uuid {:access_token "uuid_generate_v4()"}))
+
 
 ;(jdbc/insert! sql-db :workers {:name "first worker"})
 ;(jdbc/query sql-db ["SELECT * FROM workers"])
