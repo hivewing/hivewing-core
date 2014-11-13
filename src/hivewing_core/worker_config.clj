@@ -20,8 +20,7 @@
   [worker-uuid]
   (let [result (query aws-credentials ddb-worker-table {"uuid" worker-uuid})
         items (:items result)
-        kv-pairs (map #(hash-map (get % "key") (select-keys % ["data" "_uat" "type"])) items)
-        result (into {} kv-pairs)
+        result (reduce #(assoc %1 (:key %2) (:data %2)) items)
         ]
     result
     ))
@@ -35,8 +34,8 @@
   (doseq [kv-pair parameters]
     (let [upload-data {"uuid" worker-uuid,
                        "key"  (name (get kv-pair 0)),
-                       "data" (str (get kv-pair 1)),
                        "_uat" (System/currentTimeMillis),
+                       "data" (str (get kv-pair 1))
                }]
       (put-item aws-credentials ddb-worker-table upload-data)))
   (worker-config-get worker-uuid))
