@@ -21,10 +21,8 @@
   (let [result (query aws-credentials ddb-worker-table {"uuid" worker-uuid})
         items (:items result)
         kv-pairs (map #(hash-map (get % "key") (select-keys % ["data" "_uat" "type"])) items)
-        result   (reduce #(merge %1 %2) kv-pairs)
+        result (into {} kv-pairs)
         ]
-    (println items)
-    (println kv-pairs)
     result
     ))
 
