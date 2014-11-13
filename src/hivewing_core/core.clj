@@ -1,6 +1,7 @@
 (ns hivewing-core.core)
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
+(defn ensure-uuid
+  [uuid-maybe]
+  (if (instance? java.util.UUID uuid-maybe)
+    uuid-maybe
+    (java.util.UUID/fromString uuid-maybe)))
