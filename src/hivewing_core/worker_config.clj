@@ -28,13 +28,15 @@
 
 (defn worker-config-set
   "Set the configuration on the worker. Provided a uuid and the paramters as a hash.
-  The keys for the parameters should be strings or keywords"
+  The keys for the parameters should be strings or keywords.
+  Returns the current full worker-config state"
   [worker-uuid parameters]
   ; Want to split the parameters
   (doseq [kv-pair parameters]
-    (let [upload-data {:uuid worker-uuid,
-               "key"  (name (get kv-pair 0)),
-               "data" (str (get kv-pair 1)),
-               "_uat" (System/currentTimeMillis),
+    (let [upload-data {"uuid" worker-uuid,
+                       "key"  (name (get kv-pair 0)),
+                       "data" (str (get kv-pair 1)),
+                       "_uat" (System/currentTimeMillis),
                }]
-      (put-item aws-credentials ddb-worker-table upload-data))))
+      (put-item aws-credentials ddb-worker-table upload-data)))
+  (worker-config-get worker-uuid))
