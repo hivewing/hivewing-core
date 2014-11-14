@@ -8,6 +8,8 @@
                  [org.clojure/java.jdbc "0.3.6"]
                  [postgresql "9.1-901.jdbc4"]
                  [ragtime "0.3.6"]    ; needs to be 0.3.6 - stored functions dont work in 0.3.7
+                 [com.cemerick/bandalore "0.0.6" :exclusions [joda-time]]
+                 [com.taoensso/carmine "2.7.1"]
                  ]
   :plugins [[lein-environ "1.0.0"]
             [ragtime/ragtime.lein "0.3.6"]
