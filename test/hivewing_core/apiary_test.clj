@@ -12,6 +12,6 @@
         ))
   (testing "create without a beekeeper"
     (let [result (try
-                    (apiary-create {:beekeeper_uuid nil})
+                    (apiary-create {:beekeeper_uuid "12345678-1234-1234-1234-12345678"})
                     (catch org.postgresql.util.PSQLException e (str "error")))]
       (is (= "error" result)))))
