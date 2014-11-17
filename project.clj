@@ -14,6 +14,7 @@
   :plugins [[lein-environ "1.0.0"]
             [ragtime/ragtime.lein "0.3.6"]
             [s3-wagon-private "1.1.2"]]
+  :aliases {"seed" ["run" "-m" "hivewing-core.seed/seed-database"]}
   :ragtime {:migrations ragtime.sql.files/migrations}
   :repositories [["hivewing-core" {:url "s3p://clojars.hivewing.io/hivewing-core/releases"
                              :username "AKIAJFFI52CFHPRZIPJA"

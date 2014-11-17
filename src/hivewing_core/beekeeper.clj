@@ -8,6 +8,11 @@
   [beekeeper-uuid]
   (jdbc/query sql-db ["SELECT * FROM beekeepers WHERE uuid = ? LIMIT 1" (ensure-uuid beekeeper-uuid)] :result-set-fn first))
 
+(defn beekeeper-find-by-email
+  "Find the beekeeper by their email address"
+  [email]
+  (jdbc/query sql-db ["SELECT * FROM beekeepers WHERE LOWER(email) = LOWER(?)", email] :result-set-fn first))
+
 (defn beekeeper-create
   "Create a new beekeeper"
   [parameters]
