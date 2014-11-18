@@ -16,7 +16,12 @@
                         (ensure-uuid hive-uuid)
                         per-page
                         (* (- page 1) per-page)])))
-
+(defn worker-in-hive?
+  "Is this worker in the given hive?"
+  [worker-uuid hive-uuid]
+  (jdbc/query sql-db ["SELECT uuid FROM workers WHERE uuid = ? AND hive_uuid ? LIMIT 1"
+                      (ensure-uuid worker-uuid)
+                      (ensure-uuid hive-uuid)] :result-set-fn first))
 (defn worker-get
   "Get the data for worker record.  You pass in the worker via the worker uuid.  Returns the data
   as a hashmap. DOES NOT return the access_token"
