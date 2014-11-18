@@ -10,3 +10,4 @@ pom.xml.asc
 *.swn
 *.swo
 *.swp
+profiles.clj
