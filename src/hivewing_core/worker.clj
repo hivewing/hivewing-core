@@ -13,11 +13,10 @@
         ]
     (println params)
     (println hive-uuid)
-    (map :uuid (jdbc/query sql-db ["SELECT uuid FROM workers WHERE hive_uuid = ? LIMIT ? OFFSET ?"
+    (jdbc/query sql-db ["SELECT uuid FROM workers WHERE hive_uuid = ? LIMIT ? OFFSET ?"
                         (ensure-uuid hive-uuid)
                         per-page
-                        (* (- page 1) per-page)])
-    )))
+                        (* (- page 1) per-page)])))
 
 (defn worker-get
   "Get the data for worker record.  You pass in the worker via the worker uuid.  Returns the data
