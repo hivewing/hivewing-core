@@ -4,15 +4,16 @@
             [clojure.java.jdbc :as jdbc]))
 
 
-(defn hive-get-access
+(defn hive-get-permissions
   "Gets access roles for a given uuid and token"
   [hive-uuid token]
-  (jdbc/query sql-db ["SELECT can_create, can_read, beekeeper_uuid FROM hive_managers WHERE hive_uuid = ? AND hive_managers.uuid = ? LIMIT 1" (ensure-uuid hive-uuid) (ensure-uuid token)] :result-set-fn first))
+  (jdbc/query sql-db ["SELECT can_write, beekeeper_uuid FROM hive_managers WHERE hive_uuid = ? AND hive_managers.uuid = ? LIMIT 1" (ensure-uuid hive-uuid) (ensure-uuid token)] :result-set-fn first))
 
 (defn hive-get
   "Gets the data for a given hive"
   [hive-uuid]
   (jdbc/query sql-db ["SELECT * FROM hives WHERE uuid = ? LIMIT 1" (ensure-uuid hive-uuid)] :result-set-fn first))
+
 (defn hive-create
   "Creates a new hive"
   [{apiary-uuid :apiary_uuid :as parameters}]

@@ -5,8 +5,7 @@ CREATE TABLE hive_managers (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   beekeeper_uuid uuid REFERENCES beekeepers (uuid) NOT NULL,
   hive_uuid uuid REFERENCES hives (uuid) NOT NULL,
-  can_write boolean DEFAULT false,
-  can_read boolean DEFAULT false
+  can_write boolean DEFAULT false
 );
 
 CREATE TRIGGER set_updated_at_hive_managers

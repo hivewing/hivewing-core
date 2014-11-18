@@ -13,7 +13,7 @@
         [keeper (bk/beekeeper-create {:email email})
          apiary (apiary/apiary-create {:beekeeper_uuid (:uuid keeper)})
          hive   (hive/hive-create {:name "Default Hive" :apiary_uuid (:uuid apiary)})
-         hive-manager (hm/hive-manager-create (:uuid hive) (:uuid keeper) :can_read true :can_write true)
+         hive-manager (hm/hive-manager-create (:uuid hive) (:uuid keeper) :can_write true)
         ]
         (println "Created " email))))
   )
