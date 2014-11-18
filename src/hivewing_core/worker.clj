@@ -11,9 +11,7 @@
         per-page (if (> (:per-page params) 100) 100 (:per-page params))
         page     (:page params)
         ]
-    (println params)
-    (println hive-uuid)
-    (jdbc/query sql-db ["SELECT uuid FROM workers WHERE hive_uuid = ? LIMIT ? OFFSET ?"
+    (jdbc/query sql-db ["SELECT * FROM workers WHERE hive_uuid = ? LIMIT ? OFFSET ?"
                         (ensure-uuid hive-uuid)
                         per-page
                         (* (- page 1) per-page)])))
