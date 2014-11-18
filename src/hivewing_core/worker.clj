@@ -26,7 +26,7 @@
   "Get the data for worker record.  You pass in the worker via the worker uuid.  Returns the data
   as a hashmap. DOES NOT return the access_token"
   [worker-uuid]
-  (jdbc/query sql-db ["SELECT name, created_at, updated_at, apiary_uuid, hive_uuid FROM workers WHERE uuid = ? LIMIT 1" (ensure-uuid worker-uuid)] :result-set-fn first))
+  (jdbc/query sql-db ["SELECT uuid, name, created_at, updated_at, apiary_uuid, hive_uuid FROM workers WHERE uuid = ? LIMIT 1" (ensure-uuid worker-uuid)] :result-set-fn first))
 
 (defn worker-create
   [{apiary-uuid :apiary_uuid hive-uuid :hive_uuid :as parameters}]
