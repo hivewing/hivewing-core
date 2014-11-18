@@ -12,7 +12,7 @@
         per-page (if (> (:per-page params) 100) 100 (:per-page params))
         page     (:page params)
         ]
-    (jdbc/query sql-db ["SELECT name, created_at, updated_at, apiary_uuid, hive_uuid FROM workers WHERE hive_uuid = ? LIMIT ? OFFSET ?"
+    (jdbc/query sql-db ["SELECT uuid, created_at, updated_at FROM workers WHERE hive_uuid = ? LIMIT ? OFFSET ?"
                         (ensure-uuid hive-uuid)
                         per-page
                         (* (- page 1) per-page)])))
