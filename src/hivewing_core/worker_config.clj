@@ -60,8 +60,8 @@
   Returns true if it worked"
   [worker-uuid parameters & args]
   ; Want to split the parameters
-  (let [clean-parameters (filter #(worker-config-valid-name? (key %1)) parameters)
-        suppress-change-publication (:suppress-change-publication (apply hash-map args))]
+  (let [clean-parameters (select-keys parameters (filter #(worker-config-valid-name? %1) (keys parameters)))
+        suppress-change-publication (:suppress-change-publication (apply hash-map args)) ]
     (doseq [kv-pair clean-parameters]
       (let [upload-data {"uuid" (str worker-uuid)
                          "key"  (name (get kv-pair 0)),
@@ -69,6 +69,5 @@
                          "data" (str (get kv-pair 1))
                  }]
         (put-item aws-credentials ddb-worker-table upload-data)))
-      (if (suppress-change-publication)
-        :do-nothing
+      (if (not suppress-change-publication)
         (pubsub/publish-change "worker-config" worker-uuid clean-parameters))))
