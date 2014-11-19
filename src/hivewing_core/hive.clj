@@ -20,6 +20,8 @@
 (defn hive-create
   "Creates a new hive"
   [{apiary-uuid :apiary_uuid :as parameters}]
+
   (let [clean-params (assoc parameters
                             :apiary_uuid (ensure-uuid apiary-uuid))]
-    (first (jdbc/insert! sql-db :hives parameters))))
+
+   (first (jdbc/insert! sql-db :hives parameters))))

@@ -5,8 +5,13 @@
             [hivewing-core.apiary :refer :all]
             [hivewing-core.beekeeper :refer :all]))
 
+;(def beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"})))
+;(def apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid})))
+;(def hive-uuid      (:uuid (hive-create {:apiary_uuid apiary-uuid})))
+;(def worker  (worker-create {:apiary_uuid apiary-uuid :hive_uuid hive-uuid}))
+
 (deftest create-a-worker
-  (testing "create validly"
+  (quote testing "create validly"
     (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
           apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
           hive-uuid      (:uuid (hive-create {:apiary_uuid apiary-uuid}))
@@ -15,12 +20,14 @@
         (is worker-result)
         (is worker-retrieval)
         ))
+
   (testing "reset token"
     (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
           apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
-          worker-result  (worker-create {:apiary_uuid apiary-uuid})
-          prior-access   (:access_token worker-result)
-          new-worker     (worker-reset-access-token (:uuid worker-result))
-          new-access     (:access_token new-worker)]
-        (is (not (reduce = (map str [prior-access new-access]))))
+          worker-uuid    (:uuid (worker-create {:apiary_uuid apiary-uuid}))
+          prior-access   (:access_token (worker-get worker-uuid :include-access-token true))
+          new-worker     (worker-reset-access-token worker-uuid)
+          new-access     (:access_token (worker-get worker-uuid :include-access-token true))
+          ]
+      (is (not (reduce = (map str [prior-access new-access]))))
         )))

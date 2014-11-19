@@ -3,6 +3,16 @@
             [hivewing-core.configuration :refer [aws-credentials]]
             [environ.core  :refer [env]]))
 
+(defn worker-config-system-name?
+  "Determines if the worker config system name is a system name"
+  [name]
+  (boolean (re-find #"^\." name)))
+
+(defn worker-config-valid-name?
+  "Determines if the worker config is a valid name"
+  [name]
+  (boolean (re-find #"^((\.)?[a-zA-Z0-9_\-])+" name)))
+
 (def ddb-worker-table
   "The DDB table which stores the configuration"
   (env :hivewing-ddb-worker-config-table))
@@ -16,11 +26,20 @@
 
 (defn worker-config-get
   "Given a valid worker-uuid, it will return the configuration 'hash'.
-  If you give a non-existent worker-uuid you get back {}"
-  [worker-uuid]
-  (let [result (query aws-credentials ddb-worker-table {"uuid" worker-uuid})
+  If you give a non-existent worker-uuid you get back {}
+  Pass in :include-system-keys to get back *all* keys (including system ones)"
+  [worker-uuid & params-array]
+  (let [params (apply hash-map params-array)
+        include-system-keys? (:include-system-keys params)
+        result (query aws-credentials ddb-worker-table {"uuid" worker-uuid})
         items (:items result)
-        kv-pairs (map #(hash-map (get % "key") (get % "data")) items)
+        ; Filter out the system keys if needed
+        filtered-items (if include-system-keys?
+                         items
+                         (remove #(worker-config-system-name? (get %1 "key")) items))
+        ; Now map those to a hash key structure
+        kv-pairs (map #(hash-map (get % "key") (get % "data")) filtered-items)
+        ; Now we have a result!
         result (into {} kv-pairs)]
     result
     ))
@@ -32,10 +51,12 @@
   [worker-uuid parameters]
   ; Want to split the parameters
   (doseq [kv-pair parameters]
-    (let [upload-data {"uuid" worker-uuid,
-                       "key"  (name (get kv-pair 0)),
-                       "_uat" (System/currentTimeMillis),
-                       "data" (str (get kv-pair 1))
-               }]
-      (put-item aws-credentials ddb-worker-table upload-data)))
-  (worker-config-get worker-uuid))
+    (if (worker-config-valid-name? (get kv-pair 0))
+      (let [upload-data {"uuid" worker-uuid,
+                         "key"  (name (get kv-pair 0)),
+                         "_uat" (System/currentTimeMillis),
+                         "data" (str (get kv-pair 1))
+                 }]
+        (put-item aws-credentials ddb-worker-table upload-data)
+        (worker-config-get worker-uuid))
+      (throw (Exception. "Invalid worker config key name")))))
