@@ -17,7 +17,7 @@
   "Subscribe to all messages from the given channel"
   [channel handler]
     (car/with-new-pubsub-listener redis-listener
-      {channel handler}
+      {channel (fn [[msg_type channel data]] (if (= msg_type "message") (handler data)))}
       (car/subscribe channel)))
 
 (defn unsubscribe

@@ -27,6 +27,7 @@
         hive   (first (apiary/apiary-get-hives (:uuid apiary)))
         hive-manager (hm/hive-managers-get (:uuid hive))
         workers (worker/worker-list (:uuid hive))
+        tokens (map #(select-keys (worker/worker-get (:uuid %1) :include-access-token true) [:uuid :access_token] ) workers )
         ]
     (println "---------------------------------------------------------------------------------------------")
     (println "User: " keeper)
@@ -38,6 +39,7 @@
     (println "Hive-Manager: " hive-manager)
     (println )
     (println "Workers: " workers)
+    (println "tokens " tokens)
     (println )
     (println "---------------------------------------------------------------------------------------------")
     ))

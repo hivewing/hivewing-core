@@ -50,7 +50,6 @@
   Get the hash that was updated if it does get updated"
   [worker-uuid handler]
     (pubsub/subscribe-change "worker-config" worker-uuid handler))
-
 (defn worker-config-stop-watching-changes
   [listener]
   (pubsub/unsubscribe listener))
