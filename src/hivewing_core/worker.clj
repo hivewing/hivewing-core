@@ -20,7 +20,6 @@
         per-page (if (> (:per-page params) 100) 100 (:per-page params))
         page     (:page params)
         ]
-    (println per-page hive-uuid page)
     (jdbc/query sql-db [
                         (str "SELECT "
                              "uuid, created_at, updated_at "
