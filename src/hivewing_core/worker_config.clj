@@ -51,6 +51,10 @@
   [worker-uuid handler]
     (pubsub/subscribe-change "worker-config" worker-uuid handler))
 
+(defn worker-config-stop-watching-changes
+  [listener]
+  (pubsub/unsubscribe listener))
+
 (defn worker-config-set
   "Set the configuration on the worker. Provided a uuid and the paramters as a hash.
   The keys for the parameters should be strings or keywords.
