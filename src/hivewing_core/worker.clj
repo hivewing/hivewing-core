@@ -20,9 +20,10 @@
         per-page (if (> (:per-page params) 100) 100 (:per-page params))
         page     (:page params)
         ]
+    (println per-page hive-uuid page)
     (jdbc/query sql-db [
                         (str "SELECT "
-                             (worker-fields-except "access_token")
+                             "uuid, created_at, updated_at "
                              " FROM workers WHERE hive_uuid = ? LIMIT ? OFFSET ?")
                         (ensure-uuid hive-uuid)
                         per-page

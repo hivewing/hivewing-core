@@ -14,6 +14,7 @@
          apiary (apiary/apiary-create {:beekeeper_uuid (:uuid keeper)})
          hive   (hive/hive-create {:name "Default Hive" :apiary_uuid (:uuid apiary)})
          hive-manager (hm/hive-manager-create (:uuid hive) (:uuid keeper) :can_write true)
+         worker (worker/worker-create (:apiary_uuid (:uuid apiary) :hive_uuid (:uuid hive)))
         ]
         (println "Created " email))))
   )
@@ -25,6 +26,7 @@
         apiary (apiary/apiary-find-by-beekeeper (:uuid keeper))
         hive   (first (apiary/apiary-get-hives (:uuid apiary)))
         hive-manager (hm/hive-managers-get (:uuid hive))
+        workers (worker/worker-list (:uuid hive))
         ]
     (println "---------------------------------------------------------------------------------------------")
     (println "User: " keeper)
@@ -34,6 +36,9 @@
     (println "Hive: " hive)
     (println)
     (println "Hive-Manager: " hive-manager)
+    (println )
+    (println "Workers: " workers)
+    (println )
     (println "---------------------------------------------------------------------------------------------")
     ))
 
