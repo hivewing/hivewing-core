@@ -12,6 +12,7 @@
     (redis (car/publish channel data)))
 
 (def redis-listener {:uri (env :hivewing-redis-uri)})
+
 (defn subscribe-message
   "Subscribe to all messages from the given channel"
   [channel handler]
@@ -23,3 +24,19 @@
   "Unsubscribe to handler"
   [listener]
   (car/close-listener listener))
+
+(defn change-channel-name
+  "Channel name for changes"
+  [component uuid]
+  (str "update" ":" component ":" uuid))
+
+(defn publish-change
+  "Publish a change event for a given component and then
+  the components uuid"
+  [component uuid data]
+  (publish-message (change-channel-name component uuid) data))
+
+(defn subscribe-change
+  "Subscribe to changes for a component / uuid pair"
+  [component uuid handler]
+  (subscribe-message (change-channel-name component uuid) handler))

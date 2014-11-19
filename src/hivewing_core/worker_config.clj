@@ -1,6 +1,7 @@
 (ns hivewing-core.worker-config
   (:require [rotary.client :refer :all]
             [hivewing-core.configuration :refer [aws-credentials]]
+            [hivewing-core.pubsub :as pubsub]
             [environ.core  :refer [env]]))
 
 (defn worker-config-system-name?
@@ -44,18 +45,27 @@
     result
     ))
 
+(defn worker-config-watch-changes
+  "Watch for changes to this worker config.
+  Get the hash that was updated if it does get updated"
+  [worker-uuid handler]
+    (pubsub/subscribe-change "worker-config" worker-uuid handler))
+
 (defn worker-config-set
   "Set the configuration on the worker. Provided a uuid and the paramters as a hash.
   The keys for the parameters should be strings or keywords.
   Returns true if it worked"
-  [worker-uuid parameters]
+  [worker-uuid parameters & args]
   ; Want to split the parameters
-  (doseq [kv-pair parameters]
-    (if (worker-config-valid-name? (get kv-pair 0))
+  (let [clean-parameters (filter #(worker-config-valid-name? (key %1)) parameters)
+        suppress-change-publication (:suppress-change-publication (apply hash-map args))]
+    (doseq [kv-pair clean-parameters]
       (let [upload-data {"uuid" (str worker-uuid)
                          "key"  (name (get kv-pair 0)),
                          "_uat" (System/currentTimeMillis),
                          "data" (str (get kv-pair 1))
                  }]
-        (put-item aws-credentials ddb-worker-table upload-data))
-      (throw (Exception. "Invalid worker config key name")))))
+        (put-item aws-credentials ddb-worker-table upload-data)))
+      (if (suppress-change-publication)
+        :do-nothing
+        (pubsub/publish-change "worker-config" worker-uuid clean-parameters))))
