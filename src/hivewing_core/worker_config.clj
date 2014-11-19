@@ -31,7 +31,7 @@
   [worker-uuid & params-array]
   (let [params (apply hash-map params-array)
         include-system-keys? (:include-system-keys params)
-        result (query aws-credentials ddb-worker-table {"uuid" worker-uuid})
+        result (query aws-credentials ddb-worker-table {"uuid" (str worker-uuid)})
         items (:items result)
         ; Filter out the system keys if needed
         filtered-items (if include-system-keys?
@@ -47,16 +47,15 @@
 (defn worker-config-set
   "Set the configuration on the worker. Provided a uuid and the paramters as a hash.
   The keys for the parameters should be strings or keywords.
-  Returns the current full worker-config state"
+  Returns true if it worked"
   [worker-uuid parameters]
   ; Want to split the parameters
   (doseq [kv-pair parameters]
     (if (worker-config-valid-name? (get kv-pair 0))
-      (let [upload-data {"uuid" worker-uuid,
+      (let [upload-data {"uuid" (str worker-uuid)
                          "key"  (name (get kv-pair 0)),
                          "_uat" (System/currentTimeMillis),
                          "data" (str (get kv-pair 1))
                  }]
-        (put-item aws-credentials ddb-worker-table upload-data)
-        (worker-config-get worker-uuid))
+        (put-item aws-credentials ddb-worker-table upload-data))
       (throw (Exception. "Invalid worker config key name")))))

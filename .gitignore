@@ -11,3 +11,4 @@ pom.xml.asc
 *.swo
 *.swp
 profiles.clj
+test/aws_local/ddb/data/123abc_us-east-1.db
