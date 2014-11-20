@@ -4,6 +4,11 @@
             [hivewing-core.pubsub :as pubsub]
             [environ.core  :refer [env]]))
 
+(defn worker-config-updates-channel
+  "Generates the channel worker config updates are on"
+  [worker-uuid]
+  (str "worker-config:" worker-uuid ":updates"))
+
 (defn worker-config-system-name?
   "Determines if the worker config system name is a system name"
   [name]
@@ -45,15 +50,6 @@
     result
     ))
 
-(defn worker-config-watch-changes
-  "Watch for changes to this worker config.
-  Get the hash that was updated if it does get updated"
-  [worker-uuid handler]
-    (pubsub/subscribe-change "worker-config" worker-uuid handler))
-(defn worker-config-stop-watching-changes
-  [listener]
-  (pubsub/unsubscribe listener))
-
 (defn worker-config-set
   "Set the configuration on the worker. Provided a uuid and the paramters as a hash.
   The keys for the parameters should be strings or keywords.
@@ -70,4 +66,4 @@
                  }]
         (put-item aws-credentials ddb-worker-table upload-data)))
       (if (not suppress-change-publication)
-        (pubsub/publish-change "worker-config" worker-uuid clean-parameters))))
+        (pubsub/publish-message (worker-config-updates-channel worker-uuid) clean-parameters))))

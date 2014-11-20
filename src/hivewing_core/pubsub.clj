@@ -15,28 +15,18 @@
 
 (defn subscribe-message
   "Subscribe to all messages from the given channel"
-  [channel handler]
+  [& channels-and-handlers]
+  (let [channels (apply hash-map channels-and-handlers)]
     (car/with-new-pubsub-listener redis-listener
-      {channel (fn [[msg_type channel data]] (if (= msg_type "message") (handler data)))}
-      (car/subscribe channel)))
+      (into {} (map
+                #(vector (key %1)
+                         (fn [[msg_type chan data]] (if (= msg_type "message") ((val %1) data))))
+                  channels))
+      (doseq [chan (keys channels)]
+        (car/subscribe chan)
+        ))))
 
 (defn unsubscribe
   "Unsubscribe to handler"
   [listener]
   (car/close-listener listener))
-
-(defn change-channel-name
-  "Channel name for changes"
-  [component uuid]
-  (str "update" ":" component ":" uuid))
-
-(defn publish-change
-  "Publish a change event for a given component and then
-  the components uuid"
-  [component uuid data]
-  (publish-message (change-channel-name component uuid) data))
-
-(defn subscribe-change
-  "Subscribe to changes for a component / uuid pair"
-  [component uuid handler]
-  (subscribe-message (change-channel-name component uuid) handler))
