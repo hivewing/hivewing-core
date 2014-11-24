@@ -59,4 +59,4 @@
   [worker-uuid field-name]
   (let [data-name (clojure.core/name field-name)
         key-name (worker-data-key-name worker-uuid data-name)]
-    (hash-map field-name (apply hash-map (redis (car/zrange key-name 0 -1 :WITHSCORES))))))
+    (apply vector (map (partial zipmap [:value :at]) (partition 2 (redis (car/zrange key-name 0 -1 :WITHSCORES)))))))
