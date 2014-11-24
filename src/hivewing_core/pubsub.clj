@@ -20,7 +20,7 @@
     (car/with-new-pubsub-listener redis-listener
       (into {} (map
                 #(vector (key %1)
-                         (fn [[msg_type chan data]] (if (= msg_type "message") ((val %1) data))))
+                         (fn [[msg_type chan data]] (if (= msg_type "message") ((val %1) chan data))))
                   channels))
       (doseq [chan (keys channels)]
         (car/subscribe chan)

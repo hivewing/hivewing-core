@@ -5,8 +5,8 @@
 (deftest do-some-pubsub
   (testing "create a pubsubber and listen"
     (let [recv-count (atom 0)
-          listener (subscribe-message "subscribe" (fn [msg]
-                                                    (println "recv: " msg)
+          listener (subscribe-message "subscribe" (fn [msg channel]
+                                                    (println "recv: " msg channel)
                                                     (println @recv-count)
                                                     (swap! recv-count inc)
                                                     (println @recv-count)

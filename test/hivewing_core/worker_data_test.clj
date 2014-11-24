@@ -10,7 +10,6 @@
           field-name :apples
           stored-data (worker-data-store worker-uuid field-name "DATA")
           read-data   (worker-data-read worker-uuid field-name)]
-        (is (= (keys stored-data) (keys read-data)))
-        (is (= (first (vals stored-data)) (first (keys (first (vals read-data))))))
+        (is (= (first (vals stored-data)) (first (vals read-data))))
         ))
   )
