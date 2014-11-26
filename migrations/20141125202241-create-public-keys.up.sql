@@ -9,3 +9,5 @@ CREATE TABLE public_keys (
 CREATE TRIGGER set_updated_at_public_keys
   BEFORE UPDATE ON public_keys FOR EACH ROW
   EXECUTE PROCEDURE set_updated_at_column();
+
+CREATE UNIQUE INDEX unique_public_keys ON public_keys (key);

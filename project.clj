@@ -8,6 +8,9 @@
                  [org.clojure/java.jdbc "0.3.6"]
                  [postgresql "9.1-901.jdbc4"]
                  [ragtime "0.3.6"]    ; needs to be 0.3.6 - stored functions dont work in 0.3.7
+                 [digest "1.4.4"]
+                 [clj-jgit "0.8.2"]
+                 [clojure-tools "1.1.2"]
                  [com.cemerick/bandalore "0.0.6" :exclusions [joda-time]]
                  [com.taoensso/carmine "2.7.1"]
                  ]

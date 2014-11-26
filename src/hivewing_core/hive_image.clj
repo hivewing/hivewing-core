@@ -1,20 +1,21 @@
-
-(ns hivewing-core.hive-images
+(ns hivewing-core.hive-image
   (:require [clojure.java.shell :as shell]
             [clojure.java.io :as io]
+            [digest :as digest]
+            [clojure.tools.file-utils :as file-utils]
             [hivewing-core.hive-manager :as hive-manager]
             [environ.core  :refer [env]]))
 
 ; sends ref to workers. the imge is a URL.
 ; http://gitolite.com/gitolite/odds-and-ends.html#server-side-admin
 
-(defn hive-images-recompile-gitolite
+(defn hive-image-recompile-gitolite
   "Run the commands to recompile gitolite"
   [])
 
 (defmacro with-gitolite
   "Recompiles gitolite once you make all these changes."
-  [& body] `( ~@body (hive-images-recompile-gitolite)))
+  [& body] `( ~@body (hive-image-recompile-gitolite)))
 
 (def gitolite-root
   (.getPath (io/file (env :hivewing-gitolite-root))))
@@ -32,34 +33,55 @@
   [uuid]
   (partition 2 (clojure.string/replace uuid #"-" "")))
 
-(defn hive-images-access-config-file
+(defn hive-image-gitolite-user-name
+  [user-uuid]
+  (str "user-" user-uuid))
+
+(defn hive-image-access-config-file
   "Create and return the string which represents
    a gitolite config file for a hive"
   [hive-uuid]
-    (let [manager-uuids (map :beekeeper_uuid (hive-manager/hive-managers-get hive-uuid))
+    (let [manager-uuids (map hive-image-gitolite-user-name (map :beekeeper_uuid (hive-manager/hive-managers-get hive-uuid)))
           user-group-name (str "@hive-" hive-uuid "-users")]
-    ; We want to get all the hive-managers
-    ; and their uuids added.
-    (clojure.string/join
-      [
-        "# This is a config file describing the access for the hive's images"
-        ""
-        (map #(str  user-group-name " = " %1) manager-uuids)
-        ""
-        (str "repo " hive-uuid "/[a-zA-Z0-9].*")
-        (str "  C   = " user-group-name)
-        (str "  RW+ = " user-group-name)
-      ]
-      "\n")
+      ; We want to get all the hive-managers
+      ; and their uuids added.
+      (clojure.string/join
+        "\n"
+        [
+          "# This is a config file describing the access for the hive's images"
+          ""
+          (map #(str  user-group-name " = " %1) manager-uuids)
+          ""
+          (str "repo " hive-uuid)
+          (str "  C   = " user-group-name)
+          (str "  RW+ = " user-group-name)
+        ]
+        )
     ))
 
-(defn hive-images-set-user-public-keys
-  "Update a user's public keys and add them to the
-  gitolite system.  You can add multiple public-keys
-  It will set them, removing all and then adding them all"
-  [worker-uuid & public-keys]
-    ; we want to add these public-keys
-  )
+(defn hive-image-user-public-key-name
+  "Gives a unique dir for a public-key"
+  [user-uuid pk]
+  (str (digest/md5 pk) "/" (hive-image-gitolite-user-name user-uuid)))
+
+(defn hive-image-set-user-public-keys
+  "Given a worker-uuid and their public keys
+  it will make sure that these are the only ones that
+  are available in the gitolite system
+  Public_keys are unique across the system by DB design"
+  [user-uuid & public-keys]
+    (let [user-keys-path (.getPath (io/file gitolite-key-root (uuid-split user-uuid)))]
+
+      ; Delete the existing keys
+      (file-utils/recursive-delete (io/file user-keys-path))
+
+      ; Generate the new keys
+      (doseq [public-key public-keys]
+        (let [location (io/file user-keys-path (hive-image-user-public-key-name user-uuid public-key))]
+          (doall
+            (.mkdirs (.getParent location))
+            ; add them to the file system
+            (spit location public-key))))))
 
 ; Make this an SQS worker to do the updates!
 ;  Given a hive-uuid - it updates.

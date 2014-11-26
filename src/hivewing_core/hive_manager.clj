@@ -16,3 +16,10 @@
   "Get all the hive managers for a hive"
   [hive-uuid]
   (jdbc/query sql-db ["SELECT * FROM hive_managers WHERE hive_uuid = ?" (ensure-uuid hive-uuid)]))
+
+(defn hive-manager-delete
+  "Delete a hive manager"
+  [hive-uuid hive-manager-uuid]
+  (let [hu (ensure-uuid hive-uuid)
+        hmu (ensure-uuid hive-manager-uuid)]
+    (jdbc/delete! :hive_managers ["hive_uuid = ? AND uuid = ?" hu hmu])))
