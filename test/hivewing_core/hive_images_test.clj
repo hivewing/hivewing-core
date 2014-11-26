@@ -20,5 +20,5 @@
           hive           (hive-create {:apiary_uuid (:uuid apiary)})
           hive-manager   (hive-manager-create (:uuid hive) beekeeper-uuid)
           ]
-        (is (println (hive-image-access-config-file (:uuid hive))))
+        (is (hive-image-access-config-file (:uuid hive)))
       )))
