@@ -1,6 +1,9 @@
 (ns hivewing-core.beekeeper-test
   (:require [clojure.test :refer :all]
+            [hivewing-core.helpers :refer :all]
             [hivewing-core.beekeeper :refer :all]))
+
+(use-fixtures :each clean-database)
 
 (deftest create-a-beekeeper
   (testing "create with a basic email address"

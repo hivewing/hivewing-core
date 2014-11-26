@@ -1,14 +1,12 @@
 (ns hivewing-core.worker-test
   (:require [clojure.test :refer :all]
+            [hivewing-core.helpers :refer :all]
             [hivewing-core.worker :refer :all]
             [hivewing-core.hive :refer :all]
             [hivewing-core.apiary :refer :all]
             [hivewing-core.beekeeper :refer :all]))
 
-;(def beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"})))
-;(def apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid})))
-;(def hive-uuid      (:uuid (hive-create {:apiary_uuid apiary-uuid})))
-;(def worker  (worker-create {:apiary_uuid apiary-uuid :hive_uuid hive-uuid}))
+(use-fixtures :each clean-database)
 
 (deftest create-a-worker
   (quote testing "create validly"

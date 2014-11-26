@@ -1,7 +1,8 @@
 (ns hivewing-core.worker-config-test
   (:require [clojure.test :refer :all]
+            [hivewing-core.helpers :refer :all]
             [hivewing-core.worker-config :refer :all]))
-
+(use-fixtures :each clean-database)
 (deftest create-a-worker
   (testing "system names"
       (is (worker-config-system-name? ".system-name"))

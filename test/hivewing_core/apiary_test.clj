@@ -1,7 +1,10 @@
 (ns hivewing-core.apiary-test
   (:require [clojure.test :refer :all]
             [hivewing-core.apiary :refer :all]
+            [hivewing-core.helpers :refer :all]
             [hivewing-core.beekeeper :refer :all]))
+
+(use-fixtures :each clean-database)
 
 (deftest create-an-apiary
   (testing "create with a beekeeper"
