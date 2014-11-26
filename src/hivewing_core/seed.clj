@@ -14,7 +14,7 @@
          apiary (apiary/apiary-create {:beekeeper_uuid (:uuid keeper)})
          hive   (hive/hive-create {:name "Default Hive" :apiary_uuid (:uuid apiary)})
          hive-manager (hm/hive-manager-create (:uuid hive) (:uuid keeper) :can_write true)
-         worker (worker/worker-create (:apiary_uuid (:uuid apiary) :hive_uuid (:uuid hive)))
+         worker (worker/worker-create {:apiary_uuid (:uuid apiary) :hive_uuid (:uuid hive)})
         ]
         (println "Created " email))))
   )

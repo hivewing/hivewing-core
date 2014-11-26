@@ -31,7 +31,7 @@
 (defn- uuid-split
   "Splits a uuid into a 14 pair path."
   [uuid]
-  (partition 2 (clojure.string/replace uuid #"-" "")))
+  (apply io/file (map clojure.string/join (partition 2 (clojure.string/replace uuid #"-" "")))))
 
 (defn hive-image-gitolite-user-name
   [user-uuid]
@@ -79,7 +79,7 @@
       (doseq [public-key public-keys]
         (let [location (io/file user-keys-path (hive-image-user-public-key-name user-uuid public-key))]
           (doall
-            (.mkdirs (.getParent location))
+            (.mkdirs (io/file (.getParent location)))
             ; add them to the file system
             (spit location public-key))))))
 
