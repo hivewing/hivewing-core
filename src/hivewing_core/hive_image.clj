@@ -6,7 +6,6 @@
             [amazonica.aws.sqs :as sqs]
             [amazonica.aws.s3 :as s3]
             [amazonica.aws.s3transfer :as s3-transfer]
-            [taoensso.nippy :as nippy]
             [digest :as digest]
             [clojure.tools.file-utils :as file-utils]
             [clj-jgit.porcelain :as jgit]
@@ -37,6 +36,7 @@
   (hive-image-package-image hive-uuid reference)
   (hive-image-package-url hive-uuid reference)
   (s3/get-resource-url hive-image-data-bucket "123.zip")
+  (hive-images-send-images-update-message hive-uuid)
 )
 
 (defn hive-images-sqs-queue
@@ -73,25 +73,25 @@
   "Send a message that a hive was updated (created / deleted)"
   [hive-uuid]
   (logger/info "Updated hive: " hive-uuid)
-  (sqs/send-message (hive-images-sqs-queue) (nippy/freeze {:hive-update hive-uuid})))
+  (sqs/send-message config/sqs-aws-credentials (hive-images-sqs-queue) (prn-str {:hive-update hive-uuid})))
 
 (defn hive-images-send-beekeeper-update-message
   "Send a message that a beekeeper was updated / created / deleted"
   [beekeeper-uuid]
   (logger/info "Updated beekeeper: " beekeeper-uuid)
-  (sqs/send-message (hive-images-sqs-queue) (nippy/freeze {:beekeeper-update beekeeper-uuid})))
+  (sqs/send-message config/sqs-aws-credentials (hive-images-sqs-queue) (prn-str {:beekeeper-update beekeeper-uuid})))
 
 (defn hive-images-send-images-update-message
   "Send a message that a beekeeper was updated / created / deleted"
   [hive-uuid]
   (logger/info "Updated hive image " hive-uuid)
-  (sqs/send-message (hive-images-sqs-queue) (nippy/freeze {:image-update hive-uuid})))
+  (sqs/send-message config/sqs-aws-credentials (hive-images-sqs-queue) (prn-str {:image-update hive-uuid})))
 
 (defn hive-images-send-worker-update-message
   "Send a message that a worker was moved between hives"
   [worker-uuid]
   (logger/info "Updated worker" worker-uuid)
-  (sqs/send-message (hive-images-sqs-queue) (nippy/freeze {:worker-update worker-uuid})))
+  (sqs/send-message config/sqs-aws-credentials (hive-images-sqs-queue) (prn-str {:worker-update worker-uuid})))
 
 (def gitolite-shell-command
   (.getPath (io/file (env :hivewing-gitolite-shell-command))))
