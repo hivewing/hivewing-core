@@ -1,0 +1,2 @@
+ALTER TABLE hives
+  ADD COLUMN image_branch VARCHAR(255) NOT NULL DEFAULT 'master';

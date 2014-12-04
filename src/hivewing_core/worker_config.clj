@@ -1,8 +1,14 @@
 (ns hivewing-core.worker-config
-  (:require [rotary.client :refer :all]
-            [hivewing-core.configuration :refer [aws-credentials]]
+  (:require
+            [amazonica.aws.dynamodbv2 :as ddb]
+            [hivewing-core.configuration :refer [ddb-aws-credentials]]
+            [hivewing-core.worker :as worker]
             [hivewing-core.pubsub :as pubsub]
             [environ.core  :refer [env]]))
+(comment
+    (worker-config-set "123" {".hive-images" "http://123456"})
+  )
+;ddb-aws-credentials
 
 (defn worker-config-updates-channel
   "Generates the channel worker config updates are on"
@@ -23,12 +29,27 @@
   "The DDB table which stores the configuration"
   (env :hivewing-ddb-worker-config-table))
 
-(defn worker-ensure-tables []
+(defn worker-ensure-tables [ & opt]
   "Setup the worker table just like we need it set up.  uuid string, and key range-key"
-  (ensure-table aws-credentials {:name ddb-worker-table,
-                                 :hash-key {:name "uuid", :type :s},
-                                 :range-key {:name "key", :type :s},
-                                 :throughput {:read 1, :write 1}}))
+  (if (= opt :delete-first)
+    (ddb/delete-table ddb-aws-credentials :table-name ddb-worker-table))
+
+  (try
+    (ddb/describe-table ddb-aws-credentials :table-name ddb-worker-table)
+    (catch com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException e
+      (ddb/create-table ddb-aws-credentials
+                        :table-name ddb-worker-table
+                        :key-schema [{:attribute-name "uuid" :key-type "HASH"}
+                                     {:attribute-name "key"  :key-type "RANGE"}]
+                        :attribute-definitions
+                                    [{:attribute-name "uuid" :attribute-type "S"}
+                                     {:attribute-name "key"  :attribute-type "S"}]
+                                     ;{:attribute-name "_uat" :attribute-type "N"}
+                                     ;{:attribute-name "data" :attribute-type "S"}]
+                        :provisioned-throughput
+                                    {:read-capacity-units 1
+                                     :write-capacity-units 1}))))
+
 
 (defn worker-config-get
   "Given a valid worker-uuid, it will return the configuration 'hash'.
@@ -37,7 +58,13 @@
   [worker-uuid & params-array]
   (let [params (apply hash-map params-array)
         include-system-keys? (:include-system-keys params)
-        result (query aws-credentials ddb-worker-table {"uuid" (str worker-uuid)})
+        result (ddb/query ddb-aws-credentials
+                          :table-name ddb-worker-table
+                          :limit 1
+                          :select "ALL_ATTRIBUTES"
+                          :key-conditions
+                            {:uuid {:attribute-value-list [(str worker-uuid)] :comparison-operator "EQ"}}
+                            )
         items (:items result)
         ; Filter out the system keys if needed
         filtered-items (if include-system-keys?
@@ -48,7 +75,7 @@
         ; Now we have a result!
         result (into {} kv-pairs)]
     result
-    ))
+  ))
 
 (defn worker-config-set
   "Set the configuration on the worker. Provided a uuid and the paramters as a hash.
@@ -63,7 +90,34 @@
                          "key"  (name (get kv-pair 0)),
                          "_uat" (System/currentTimeMillis),
                          "data" (str (get kv-pair 1))
-                 }]
-        (put-item aws-credentials ddb-worker-table upload-data)))
-      (if (not suppress-change-publication)
-        (pubsub/publish-message (worker-config-updates-channel worker-uuid) clean-parameters))))
+                 }
+            old-data (ddb/put-item ddb-aws-credentials
+                      :table-name ddb-worker-table
+                      :item upload-data
+                      :return-values "ALL_OLD")]
+        (println old-data)
+
+        (if (not (= (get upload-data "data" ) (get-in old-data [:attributes :data])))
+          (if (not suppress-change-publication)
+            (pubsub/publish-message (worker-config-updates-channel worker-uuid) clean-parameters)))))))
+
+(defn worker-config-set-hive-image
+  [worker-uuid hive-image-url]
+    (worker-config-set worker-uuid {".hive-image" hive-image-url}))
+
+(defn worker-config-update-hive-image-url
+  "Set this value on every worker in the given hive.
+  Will publish a change message for any worker which
+  did not have that config set already"
+  ([hive-uuid hive-image-url]
+    (worker-config-update-hive-image-url hive-uuid hive-image-url 1 100))
+
+  ([hive-uuid hive-image-url page per-page]
+    (let [worker-uuids (worker/worker-list hive-uuid :per-page per-page :page page)]
+      (if (not (empty? worker-uuids))
+        (pmap
+          #(worker-config-set-hive-image %1 hive-image-url)
+          worker-uuids
+          )
+        (recur hive-uuid hive-image-url (+ 1 page) per-page)
+        ))))
