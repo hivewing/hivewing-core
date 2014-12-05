@@ -94,7 +94,7 @@
   (sqs/send-message config/sqs-aws-credentials (hive-images-sqs-queue) (prn-str {:worker-update worker-uuid})))
 
 (def gitolite-shell-command
-  (.getPath (io/file (env :hivewing-gitolite-shell-command))))
+  (.getPath (io/file (or (env :hivewing-gitolite-shell-command) "/home/git/bin/gitolite"))))
 
 (defn hive-image-recompile-gitolite
   "Run the commands to recompile gitolite"
@@ -108,10 +108,10 @@
   [& body] `( ~@body (hive-image-recompile-gitolite)))
 
 (def gitolite-root
-  (.getPath (io/file (env :hivewing-gitolite-root))))
+  (.getPath (io/file (or (env :hivewing-gitolite-root) "/home/git/.gitolite" ))))
 
 (def gitolite-repositories-root
-  (.getPath (io/file (env :hivewing-gitolite-repositories-root))))
+  (.getPath (io/file (or (env :hivewing-gitolite-repositories-root) "/home/git/repositories" ))))
 
 (def gitolite-key-root
   "The place where we'll drop public key files"
@@ -178,7 +178,7 @@
        (catch Exception e nil))))
 
 (def hive-image-data-bucket
-  (env :hivewing-hive-images-bucket-name))
+  (or (env :hivewing-hive-images-bucket-name) "hivewing-images-bucket-undefined"))
 
 (defn ensure-hive-image-bucket
   "Ensures the S3 bucket for images exists"
