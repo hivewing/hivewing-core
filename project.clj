@@ -25,6 +25,7 @@
   :aliases {"seed" ["run" "-m" "hivewing-core.seed/seed-database"]}
   :ragtime {:migrations ragtime.sql.files/migrations}
   :repositories [["hivewing-core" {:url "s3p://clojars.hivewing.io/hivewing-core/releases"
+                                   :sign-releases false
                              :username "AKIAJFFI52CFHPRZIPJA"
                              :passphrase "THLlPQGSstzspARpgw4s+LgqFT2DyrNFJ+vxkHDf"}]]
   )
