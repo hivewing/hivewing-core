@@ -1,6 +1,7 @@
 (ns hivewing-core.seed
   (:require [hivewing-core.worker       :as worker]
             [hivewing-core.hive         :as hive]
+            [hivewing-core.worker-config :as worker-config]
             [hivewing-core.apiary       :as apiary]
             [hivewing-core.beekeeper    :as bk]
             [hivewing-core.hive-manager :as hm]))
@@ -51,4 +52,10 @@
     (do
         (seed-beekeeper email)
         (print-beekeeper email))
-    ))
+    )
+  )
+
+(defn setup-aws
+  []
+    (worker-config/worker-ensure-tables)
+  )

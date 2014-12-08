@@ -36,7 +36,15 @@
   (hive-image-package-image hive-uuid reference)
   (hive-image-package-url hive-uuid reference)
   (s3/get-resource-url hive-image-data-bucket "123.zip")
+  (hive-images-sqs-queue)
   (hive-images-send-images-update-message hive-uuid)
+
+  (def incoming-queue (hive-images-sqs-queue))
+  (sqs/receive-message config/sqs-aws-credentials
+                                     :queue-url incoming-queue
+                                     :wait-time-seconds 1
+                                     :max-number-of-messages 10
+                                     :delete false)
 )
 
 (defn hive-images-sqs-queue
