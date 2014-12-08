@@ -57,6 +57,7 @@
   worker-join-apiary first (which sets the hive to nil)"
   [worker-uuid hive-uuid]
   ; YOU MUST UPDATE THE HIVE And worker image
+  ; YOU MUST inform the worker what hive it is in!
   (println "TODO"))
 
 (defn worker-join-apiary

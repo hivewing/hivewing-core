@@ -1,4 +1,4 @@
-(defproject hivewing-core "0.1.0-SNAPSHOT"
+(defproject hivewing-core "0.1.0"
   :description "Internal 'min' layer for Hivewing"
   :url "http://core.hivewing.io"
   :dependencies [

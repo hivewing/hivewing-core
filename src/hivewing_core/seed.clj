@@ -52,6 +52,3 @@
         (seed-beekeeper email)
         (print-beekeeper email))
     ))
-;1. Write a function that can seed the data (like the blog post).
-;2. Use `lein run -m my.seed.ns/load-fixtures`.  This will start a jvm with all your project deps and then run the specified function.
-;3. Add an alias to the project.clj by adding `:aliases {"seed" ["run" "-m" "my.seed.ns/load-fixtures"]}`.  This allows the above command to be run using `lein seed`, which is easier to remember.

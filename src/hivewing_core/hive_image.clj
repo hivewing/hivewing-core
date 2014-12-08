@@ -216,6 +216,7 @@
 
 (defn hive-image-encryption-key
   [hive-uuid]
+  (println "WE NEED TO EMIT THIS IN WORKER CONFIG! as .hive-image-key")
   (digest/sha-512 hive-uuid))
 
 (defn hive-image-encrypt-package
