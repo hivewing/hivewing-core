@@ -66,14 +66,14 @@
          queue (sqs/find-queue config/sqs-aws-credentials queue-name)]
         (if queue
           queue
-          (sqs/create-queue
+          (:queue-url (sqs/create-queue
               config/sqs-aws-credentials
               :queue-name queue-name
               :attributes
                 {:VisibilityTimeout 30 ; sec
                  :MaximumMessageSize 65536 ; bytes
                  :MessageRetentionPeriod 1209600 ; sec
-                 :ReceiveMessageWaitTimeSeconds 10}) ; sec
+                 :ReceiveMessageWaitTimeSeconds 10})) ; sec
           )))
 
 ;
