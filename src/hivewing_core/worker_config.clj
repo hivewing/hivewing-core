@@ -2,11 +2,15 @@
   (:require
             [amazonica.aws.dynamodbv2 :as ddb]
             [hivewing-core.configuration :refer [ddb-aws-credentials]]
-            [hivewing-core.worker :as worker]
+            [hivewing-core.worker-events :as worker-events]
             [hivewing-core.pubsub :as pubsub]
             [environ.core  :refer [env]]))
 (comment
     (worker-config-set "123" {".hive-images" "http://123456"})
+    (worker-config-set "123" {"not-system.hive-images2" "http://123456"})
+    (worker-config-get "123")
+    (worker-config-get "123" :include-system-keys true)
+    (worker-config-delete "123")
   )
 ;ddb-aws-credentials
 
@@ -60,22 +64,39 @@
         include-system-keys? (:include-system-keys params)
         result (ddb/query ddb-aws-credentials
                           :table-name ddb-worker-table
-                          :limit 1
                           :select "ALL_ATTRIBUTES"
                           :key-conditions
-                            {:uuid {:attribute-value-list [(str worker-uuid)] :comparison-operator "EQ"}}
-                            )
+                            {:uuid {:attribute-value-list [(str worker-uuid)] :comparison-operator "EQ"}})
         items (:items result)
         ; Filter out the system keys if needed
         filtered-items (if include-system-keys?
                          items
-                         (remove #(worker-config-system-name? (get %1 "key")) items))
+                         (remove #(worker-config-system-name? (get %1 :key)) items))
         ; Now map those to a hash key structure
-        kv-pairs (map #(hash-map (get % "key") (get % "data")) filtered-items)
+        kv-pairs (map #(hash-map (get % :key) (get % :data)) filtered-items)
         ; Now we have a result!
         result (into {} kv-pairs)]
     result
   ))
+
+(defn worker-config-delete
+  "Deletes all the keys and such for a given worker. The worker was deleted
+  so we should delete!"
+  [worker-uuid]
+  (let [result (ddb/query ddb-aws-credentials
+                          :table-name ddb-worker-table
+                          :select "ALL_ATTRIBUTES"
+                          :key-conditions
+                            {:uuid {:attribute-value-list [(str worker-uuid)] :comparison-operator "EQ"}}
+                            )
+        items (:items result)]
+      (doseq [config items]
+        (ddb/delete-item ddb-aws-credentials
+                      :table-name ddb-worker-table
+                      :key {:uuid {:s (:uuid config)}
+                            :key  {:s (:key  config)}}))))
+
+;  (worker-events/worker-events-send worker-uuid ".worker-deleted" true))
 
 (defn worker-config-set
   "Set the configuration on the worker. Provided a uuid and the paramters as a hash.
@@ -86,38 +107,21 @@
   (let [clean-parameters (select-keys parameters (filter #(worker-config-valid-name? %1) (keys parameters)))
         suppress-change-publication (:suppress-change-publication (apply hash-map args)) ]
     (doseq [kv-pair clean-parameters]
-      (let [upload-data {"uuid" (str worker-uuid)
-                         "key"  (name (get kv-pair 0)),
-                         "_uat" (System/currentTimeMillis),
-                         "data" (str (get kv-pair 1))
+      (let [upload-data {:uuid (str worker-uuid)
+                         :key  (name (get kv-pair 0)),
+                         :_uat (System/currentTimeMillis),
+                         :data (str (get kv-pair 1))
                  }
             old-data (ddb/put-item ddb-aws-credentials
                       :table-name ddb-worker-table
                       :item upload-data
                       :return-values "ALL_OLD")]
-        (println old-data)
 
-        (if (not (= (get upload-data "data" ) (get-in old-data [:attributes :data])))
+        (if (not (= (get upload-data :data ) (get-in old-data [:attributes :data])))
           (if (not suppress-change-publication)
-            (pubsub/publish-message (worker-config-updates-channel worker-uuid) clean-parameters)))))))
+            (pubsub/publish-message (worker-config-updates-channel worker-uuid) clean-parameters)))))
+  clean-parameters))
 
 (defn worker-config-set-hive-image
   [worker-uuid hive-image-url]
     (worker-config-set worker-uuid {".hive-image" hive-image-url}))
-
-(defn worker-config-update-hive-image-url
-  "Set this value on every worker in the given hive.
-  Will publish a change message for any worker which
-  did not have that config set already"
-  ([hive-uuid hive-image-url]
-    (worker-config-update-hive-image-url hive-uuid hive-image-url 1 100))
-
-  ([hive-uuid hive-image-url page per-page]
-    (let [worker-uuids (worker/worker-list hive-uuid :per-page per-page :page page)]
-      (if (not (empty? worker-uuids))
-        (pmap
-          #(worker-config-set-hive-image %1 hive-image-url)
-          worker-uuids
-          )
-        (recur hive-uuid hive-image-url (+ 1 page) per-page)
-        ))))

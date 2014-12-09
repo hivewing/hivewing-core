@@ -26,5 +26,14 @@
           (worker-config-set worker1-uuid {".hive-image" image-url})
           (worker-config-set worker2-uuid {".hive-image" "http://s3.com/0000"})
           (worker-config-set worker3-uuid {".hive-image" image-url})
+      ))
+  (testing "can delete all of the worker data"
+      (let [{worker-uuid :worker-uuid} (helpers/create-worker)]
+          (worker-config-set worker-uuid {"1" 1})
+          (worker-config-set worker-uuid {"2" 2})
+          (worker-config-set worker-uuid {"3" 3})
+          (is (not (empty? (worker-config-get worker-uuid))))
+          (worker-config-delete worker-uuid)
+          (is (empty? (worker-config-get worker-uuid)))
       )
     ))

@@ -10,8 +10,10 @@
 
 (defn public-keys-delete
   "Delete a public key record"
-  [bk-uuid public-key-uuid]
-  (jdbc/query sql-db ["DELETE FROM public_keys WHERE beekeeper_uuid = ?" (ensure-uuid bk-uuid) (ensure-uuid public-key-uuid)]))
+  ([bk-uuid] (doseq [pk (public-keys-for-beekeeper bk-uuid)]
+              (public-keys-delete bk-uuid pk)))
+  ([bk-uuid public-key-uuid]
+    (jdbc/query sql-db ["DELETE FROM public_keys WHERE beekeeper_uuid = ? AND uuid = ?" (ensure-uuid bk-uuid) (ensure-uuid public-key-uuid)])))
 
 (defn public-key-create
   "Creates a new public-key for a beekeeper"

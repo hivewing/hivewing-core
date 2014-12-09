@@ -12,6 +12,10 @@
         parameters (into {:hive_uuid clean-hive :beekeeper_uuid clean-bk } roles-hsh) ]
     (first (jdbc/insert! sql-db :hive_managers parameters))))
 
+(defn hive-managers-managing
+  [bk-uuid]
+  (jdbc/query sql-db ["SELECT * FROM hive_managers WHERE beekeeper_uuid = ?" (ensure-uuid bk-uuid)]))
+
 (defn hive-managers-get
   "Get all the hive managers for a hive"
   [hive-uuid]
@@ -19,7 +23,6 @@
 
 (defn hive-manager-delete
   "Delete a hive manager"
-  [hive-uuid hive-manager-uuid]
-  (let [hu (ensure-uuid hive-uuid)
-        hmu (ensure-uuid hive-manager-uuid)]
-    (jdbc/delete! :hive_managers ["hive_uuid = ? AND uuid = ?" hu hmu])))
+  [hive-manager-uuid]
+  (let [hmu (ensure-uuid hive-manager-uuid)]
+    (jdbc/delete! :hive_managers ["uuid = ?" hmu])))

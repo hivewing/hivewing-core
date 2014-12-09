@@ -1,6 +1,8 @@
 (ns hivewing-core.worker
   (:require [hivewing-core.configuration :refer [sql-db]]
             [hivewing-core.core :refer [ensure-uuid]]
+            [hivewing-core.worker-events :refer :all]
+            [hivewing-core.worker-config :refer :all]
             [clojure.set :as clj-set]
             [clojure.string :as clj-string]
             [clojure.java.jdbc :as jdbc]))
@@ -64,6 +66,16 @@
   "Adds the worker to an apiary, setting the hive_uuid to nil"
   [worker-uuid apiary-uuid]
   (println "TODO"))
+
+(defn worker-delete
+  "Deletes a worker.
+  It also deletes all the worker-config for this worker.
+  And sends across worker-events, the '.deleted-worker' event
+  Worker data is unaffected, b/c it will be purged over time anyway."
+  [worker-uuid]
+  (worker-config-delete worker-uuid)
+  (worker-events-send worker-uuid :.deleted-worker true)
+  (jdbc/delete! :workers ["uuid = ?" (ensure-uuid worker-uuid)]))
 
 (defn worker-access?
   "Worker given the token and uuid, can it access?"

@@ -1,6 +1,8 @@
 (ns hivewing-core.hive
   (:require [hivewing-core.configuration :refer [sql-db]]
             [hivewing-core.core :refer [ensure-uuid]]
+            [hivewing-core.worker :refer [worker-list]]
+            [hivewing-core.worker-config :refer [worker-config-set-hive-image]]
             [clojure.java.jdbc :as jdbc]))
 
 
@@ -25,3 +27,20 @@
                             :apiary_uuid (ensure-uuid apiary-uuid))]
 
    (first (jdbc/insert! sql-db :hives parameters))))
+
+(defn hive-update-hive-image-url
+  "Set this value on every worker in the given hive.
+  Will publish a change message for any worker which
+  did not have that config set already"
+  ([hive-uuid hive-image-url]
+    (hive-update-hive-image-url hive-uuid hive-image-url 1 100))
+
+  ([hive-uuid hive-image-url page per-page]
+    (let [worker-uuids (worker-list hive-uuid :per-page per-page :page page)]
+      (if (not (empty? worker-uuids))
+        (pmap
+          #(worker-config-set-hive-image %1 hive-image-url)
+          worker-uuids
+          )
+        (recur hive-uuid hive-image-url (+ 1 page) per-page)
+        ))))
