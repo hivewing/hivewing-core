@@ -34,8 +34,5 @@
     (do
       ; Delete their public keys
       (public-keys-delete bk-uuid)
-      ; Delete their manager records
-      (doseq [manager-uuid (hive-managers-managing bk-uuid)]
-        (hive-manager-delete manager-uuid))
       ; Delete the user!
-      (worker-config/worker-config-delete jdbc/delete! :beekeepers ["uuid = ?" bk-uuid]))))
+      (jdbc/delete! :beekeepers ["uuid = ?" bk-uuid]))))
