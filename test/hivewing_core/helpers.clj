@@ -20,7 +20,8 @@
   (redis (car/flushall))
 
   (jdbc/execute! sql-db ["TRUNCATE TABLE beekeepers, apiaries, hive_managers, hives, workers, public_keys"])
-  (test-function))
+  (test-function)
+  )
 
 (defn create-worker
   []

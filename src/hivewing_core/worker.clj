@@ -32,7 +32,7 @@
 (defn worker-in-hive?
   "Is this worker in the given hive?"
   [worker-uuid hive-uuid]
-  (jdbc/query sql-db ["SELECT uuid FROM workers WHERE uuid = ? AND hive_uuid = ? LIMIT 1"
+  (jdbc/query sql-db :workers ["SELECT uuid FROM workers WHERE uuid = ? AND hive_uuid = ? LIMIT 1"
                       (ensure-uuid worker-uuid)
                       (ensure-uuid hive-uuid)] :result-set-fn first))
 (defn worker-get
@@ -75,7 +75,7 @@
   [worker-uuid]
   (worker-config-delete worker-uuid)
   (worker-events-send worker-uuid :.deleted-worker true)
-  (jdbc/delete! :workers ["uuid = ?" (ensure-uuid worker-uuid)]))
+  (jdbc/delete! sql-db :workers ["uuid = ?" (ensure-uuid worker-uuid)]))
 
 (defn worker-access?
   "Worker given the token and uuid, can it access?"

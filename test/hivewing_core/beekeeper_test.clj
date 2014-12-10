@@ -12,6 +12,12 @@
         (is get-result)
         (is (= (get create-result :email)
                (get get-result    :email)))))
+  (testing "delete a bk"
+    (let [create-result (beekeeper-create {:email "my_email@example.com"})
+          {bk-uuid :uuid} (beekeeper-get (get create-result :uuid))]
+        (is (beekeeper-delete bk-uuid))
+        (is (not (beekeeper-get bk-uuid)))
+      ))
   (testing "create with a without a basic email address"
     (let [result (try
                     (beekeeper-create {:email nil})

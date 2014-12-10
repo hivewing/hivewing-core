@@ -14,6 +14,12 @@
     nil
     ))
 
+(defn hive-delete
+  "Deletes the hive record.  You need to have deleted all
+  the hive managers first though!"
+  [hive-uuid]
+  (jdbc/delete! sql-db :hives ["uuid = ?" (ensure-uuid hive-uuid)]))
+
 (defn hive-get
   "Gets the data for a given hive"
   [hive-uuid]

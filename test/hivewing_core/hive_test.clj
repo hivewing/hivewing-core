@@ -17,3 +17,12 @@
         (is hive-retrieval)
         (is (= (map str (:apiary_uuid hive-result) apiary-uuid))
         ))))
+(deftest delete-a-hive
+    (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
+          apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
+          hive-result    (hive-create {:apiary_uuid apiary-uuid})
+          hive-retrieval (hive-get (:uuid hive-result))]
+        (is hive-result)
+        (is (hive-delete (:uuid hive-result)))
+        (is (not (hive-get (:uuid hive-result))))
+        ))

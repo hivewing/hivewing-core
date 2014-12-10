@@ -35,4 +35,4 @@
       ; Delete their public keys
       (public-keys-delete bk-uuid)
       ; Delete the user!
-      (jdbc/delete! :beekeepers ["uuid = ?" bk-uuid]))))
+      (jdbc/delete! sql-db :beekeepers ["uuid = ?" bk-uuid]))))

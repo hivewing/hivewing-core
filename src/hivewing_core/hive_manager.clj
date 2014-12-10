@@ -25,4 +25,4 @@
   "Delete a hive manager"
   [hive-manager-uuid]
   (let [hmu (ensure-uuid hive-manager-uuid)]
-    (jdbc/delete! :hive_managers ["uuid = ?" hmu])))
+    (jdbc/delete! sql-db :hive_managers ["uuid = ?" hmu])))

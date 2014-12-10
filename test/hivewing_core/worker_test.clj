@@ -8,18 +8,7 @@
 
 (use-fixtures :each clean-database)
 
-(deftest create-a-worker
-  (quote testing "create validly"
-    (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
-          apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
-          hive-uuid      (:uuid (hive-create {:apiary_uuid apiary-uuid}))
-          worker-result  (worker-create {:apiary_uuid apiary-uuid :hive_uuid hive-uuid})
-          worker-retrieval  (worker-get (:uuid worker-result))]
-        (is worker-result)
-        (is worker-retrieval)
-        ))
-
-  (testing "reset token"
+(deftest reset-a-worker-token
     (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
           apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
           worker-uuid    (:uuid (worker-create {:apiary_uuid apiary-uuid}))
@@ -28,4 +17,18 @@
           new-access     (:access_token (worker-get worker-uuid :include-access-token true))
           ]
       (is (not (reduce = (map str [prior-access new-access]))))
-        )))
+        ))
+(deftest deleting-a-worker-via-worker-list
+  (let [{apiary-uuid :apiary-uuid hive-uuid :hive-uuid} (create-worker)]
+
+    (do
+      (worker-create {:apiary_uuid apiary-uuid :hive_uuid hive-uuid})
+      (worker-create {:apiary_uuid apiary-uuid :hive_uuid hive-uuid})
+      (worker-create {:apiary_uuid apiary-uuid :hive_uuid hive-uuid})
+      (worker-create {:apiary_uuid apiary-uuid :hive_uuid hive-uuid})
+      (worker-create {:apiary_uuid apiary-uuid :hive_uuid hive-uuid}))
+
+    (doseq [{worker-uuid :uuid} (worker-list hive-uuid :page 1 :per-page 100)]
+      (worker-delete worker-uuid))
+    (is (empty? (worker-list hive-uuid :page 1 :per-page 100)))
+  ))

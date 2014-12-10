@@ -13,6 +13,14 @@
         (is apiary-result)
         (is (= (:beekeeper_uuid beekeeper-uuid)))
         ))
+
+  (testing "delete!"
+    (let [{beekeeper-uuid :uuid} (beekeeper-create {:email "my_email@example.com"})
+          {apiary-uuid :uuid} (apiary-create {:beekeeper_uuid beekeeper-uuid})
+          result (apiary-delete apiary-uuid)]
+        (is result)
+        ))
+
   (testing "create without a beekeeper"
     (let [result (try
                     (apiary-create {:beekeeper_uuid "12345678-1234-1234-1234-12345678"})

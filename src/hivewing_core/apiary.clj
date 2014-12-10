@@ -23,3 +23,9 @@
   [{beekeeper-uuid :beekeeper_uuid :as parameters}]
   (let [clean-params (assoc parameters :beekeeper_uuid (ensure-uuid beekeeper-uuid))]
     (first (jdbc/insert! sql-db :apiaries clean-params))))
+
+(defn apiary-delete
+  "Deletes the apiary record.  You need to have deleted all
+  the workers and hives though!"
+  [apiary-uuid]
+  (jdbc/delete! sql-db :apiaries ["uuid = ?" (ensure-uuid apiary-uuid)]))
