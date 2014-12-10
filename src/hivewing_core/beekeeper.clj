@@ -3,6 +3,7 @@
             [hivewing-core.core :refer [ensure-uuid]]
             [hivewing-core.public-keys :refer :all]
             [hivewing-core.hive-manager :refer :all]
+            [hivewing-core.hive-image-notification :as hin]
             [hivewing-core.worker-config :as worker-config]
             [clojure.java.jdbc :as jdbc]))
 
@@ -20,7 +21,9 @@
   "Create a new beekeeper"
   [parameters]
   ; it returns a vector, we want the first value.
-  (first (jdbc/insert! sql-db :beekeepers parameters)))
+  (let [res (first (jdbc/insert! sql-db :beekeepers parameters))]
+    (hin/hive-images-notification-send-beekeeper-update-message (:uuid res))
+    res))
 
 (defn beekeeper-delete
   "Delete a beekeeper.
@@ -34,5 +37,7 @@
     (do
       ; Delete their public keys
       (public-keys-delete bk-uuid)
+      ; Notify the gitolite that this user is deleted!
+      (hin/hive-images-notification-send-beekeeper-update-message bk-uuid)
       ; Delete the user!
       (jdbc/delete! sql-db :beekeepers ["uuid = ?" bk-uuid]))))

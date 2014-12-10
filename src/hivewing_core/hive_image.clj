@@ -14,7 +14,6 @@
             [hivewing-core.configuration :as config]
             [hivewing-core.crypto :as crypto]
             [hivewing-core.hive-manager :as hive-manager]
-            [hivewing-core.public-keys :as pub-keys]
             [clojure.data.json :as json]
             [environ.core  :refer [env]])
   (:import
@@ -25,7 +24,6 @@
   (def bk-uuid "dfc2ce62-7972-11e4-abcd-a7a75eb23080")
   (public-key-create "dfc2ce62-7972-11e4-abcd-a7a75eb23080"
     "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCf/VDku3r+GRYCoEk95S5jKFJDhFqp7TRbugCl1Y3cFnCtcVG1qR9OxpbOIsOafI5B2fNhVFB7Xq1t8Hgw1poeZj7NsePSiTLquwr+0p4ISGl/yfYqDBfDdI/VSVdz73iU+L5gwa+d4ERLkKYDWS6isuw7eHf6zJ1YAjOFiDto4Fnh7QDWdwJPrQJD5afAQgEeT8Z1VO8YjXHWLOYcGCObMk5dRKYmRDTnA+ZsMm+0WuYZkgtSjyoUcpDsgbzJKYC86cVG+e2Upw8aw+NSYqFBw4VtZgTTqx1U5iZZ+Qe5FvyqJLQn6hZPC9hV7AfGacPZoL2nUl+BkulNXXEk25kv cfitzhugh@cfitz-server")
-  (def public-keys (map :key (pub-keys/public-keys-for-beekeeper bk-uuid)))
   (hive-image-set-beekeeper-public-keys bk-uuid public-keys)
   (def hive-uuid "dfc5d2c4-7972-11e4-8732-b334ee7e2863")
   (hive-image-write-access-config-file  hive-uuid)
@@ -46,60 +44,6 @@
                                      :max-number-of-messages 10
                                      :delete false)
 )
-
-(defn hive-images-sqs-queue
-  "The channel which all the changes to images should come in.
-  They are JSON blobs which have a type and a payload.
-  Types are:
-     'hive-update'  -> a hive was updated (created / deleted).
-                       update it's repo and access, and make sure
-                       the image_ref in the hive is updated.
-     'beekeeper-update'  -> a beekeeper was update (created / deleted).
-                       add it to the gitolite, make sure other hives don't include him
-     'image-update' -> an image was updated
-                       make sure the image_ref in the hive is updated.
-     'worker-update' -> a worker was updated and needs to make sure
-                        it has the right image.
-  "
-  []
-  (let [queue-name (env :hivewing-sqs-hive-images-queue )
-         queue (sqs/find-queue config/sqs-aws-credentials queue-name)]
-        (if queue
-          queue
-          (:queue-url (sqs/create-queue
-              config/sqs-aws-credentials
-              :queue-name queue-name
-              :attributes
-                {:VisibilityTimeout 30 ; sec
-                 :MaximumMessageSize 65536 ; bytes
-                 :MessageRetentionPeriod 1209600 ; sec
-                 :ReceiveMessageWaitTimeSeconds 10})) ; sec
-          )))
-
-;
-(defn hive-images-send-hive-update-message
-  "Send a message that a hive was updated (created / deleted)"
-  [hive-uuid]
-  (logger/info "Updated hive: " hive-uuid)
-  (sqs/send-message config/sqs-aws-credentials (hive-images-sqs-queue) (prn-str {:hive-update hive-uuid})))
-
-(defn hive-images-send-beekeeper-update-message
-  "Send a message that a beekeeper was updated / created / deleted"
-  [beekeeper-uuid]
-  (logger/info "Updated beekeeper: " beekeeper-uuid)
-  (sqs/send-message config/sqs-aws-credentials (hive-images-sqs-queue) (prn-str {:beekeeper-update beekeeper-uuid})))
-
-(defn hive-images-send-images-update-message
-  "Send a message that a beekeeper was updated / created / deleted"
-  [hive-uuid]
-  (logger/info "Updated hive image " hive-uuid)
-  (sqs/send-message config/sqs-aws-credentials (hive-images-sqs-queue) (prn-str {:image-update hive-uuid})))
-
-(defn hive-images-send-worker-update-message
-  "Send a message that a worker was moved between hives"
-  [worker-uuid]
-  (logger/info "Updated worker" worker-uuid)
-  (sqs/send-message config/sqs-aws-credentials (hive-images-sqs-queue) (prn-str {:worker-update worker-uuid})))
 
 (def gitolite-shell-command
   (.getPath (io/file (or (env :hivewing-gitolite-shell-command) "/home/git/bin/gitolite"))))

@@ -4,6 +4,7 @@
             [hivewing-core.configuration :as config]
             [hivewing-core.beekeeper :refer :all]
             [hivewing-core.hive-image :refer :all]
+            [hivewing-core.hive-image-notification :refer :all]
             [hivewing-core.hive-manager :refer :all]
             [hivewing-core.hive :refer :all]
             [hivewing-core.apiary :refer :all]
@@ -24,4 +25,4 @@
         (is (hive-image-access-config-file (:uuid hive)))
       )
     (testing "create the queue"
-      (is (hive-images-sqs-queue)))))
+      (is (hive-images-notification-sqs-queue)))))
