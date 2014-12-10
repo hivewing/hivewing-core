@@ -230,6 +230,7 @@
   Public_keys are unique across the system by DB design"
   [bk-uuid public-keys]
     (let [beekeeper-keys-path (.getPath (io/file gitolite-key-root (uuid-split bk-uuid) bk-uuid))]
+      (logger/info "BK Keys Path: " beekeeper-keys-path)
       (logger/info "Setting " (count public-keys) " public keys on " bk-uuid)
       ; Delete the existing keys
       (file-utils/recursive-delete (io/file beekeeper-keys-path))
