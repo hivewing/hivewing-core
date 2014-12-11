@@ -53,7 +53,7 @@
   (sqs/send-message config/sqs-aws-credentials (hive-images-notification-sqs-queue) (prn-str {:beekeeper-update beekeeper-uuid})))
 
 (defn hive-images-notification-send-images-update-message
-  "Send a message that a beekeeper was updated / created / deleted"
+  "Send a message that a image was updated / created / deleted"
   [hive-uuid]
   (logger/info "Updated hive image " hive-uuid)
   (sqs/send-message config/sqs-aws-credentials (hive-images-notification-sqs-queue) (prn-str {:image-update hive-uuid})))

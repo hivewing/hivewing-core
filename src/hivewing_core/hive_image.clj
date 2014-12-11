@@ -53,8 +53,8 @@
   []
   (logger/info "Recompiling gitolite...")
   (logger/info "Running " gitolite-shell-command)
-  (shell/sh gitolite-shell-command "compile")
-  (shell/sh gitolite-shell-command "trigger" "POST_COMPILE"))
+  (logger/info (shell/sh gitolite-shell-command "compile"))
+  (logger/info (shell/sh gitolite-shell-command "trigger" "POST_COMPILE")))
 
 (defmacro with-gitolite
   "Recompiles gitolite once you make all these changes."
