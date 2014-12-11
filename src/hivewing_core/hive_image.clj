@@ -240,7 +240,7 @@
       ; Generate the new keys
       (doseq [public-key public-keys]
         (let [location (io/file beekeeper-keys-path (str (hive-image-beekeeper-public-key-name (str bk-uuid) public-key) ".pub"))]
-          (doall
+          (do
             (logger/info "Storing PK in " (.getPath location))
             (.mkdirs (io/file (.getParent location)))
             ; add them to the file system
