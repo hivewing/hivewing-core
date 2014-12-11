@@ -52,7 +52,7 @@
   "Run the commands to recompile gitolite"
   []
   (logger/info "Recompiling gitolite...")
-  (logger/ingo "Running " gitolite-shell-command)
+  (logger/info "Running " gitolite-shell-command)
   (shell/sh gitolite-shell-command "compile")
   (shell/sh gitolite-shell-command "trigger" "POST_COMPILE"))
 

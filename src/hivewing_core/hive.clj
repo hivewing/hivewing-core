@@ -1,7 +1,7 @@
 (ns hivewing-core.hive
   (:require [hivewing-core.configuration :refer [sql-db]]
             [hivewing-core.core :refer [ensure-uuid]]
-            [hivewing-core.hive-image-notification :as [hin]]
+            [hivewing-core.hive-image-notification :as hin]
             [hivewing-core.worker :refer [worker-list]]
             [hivewing-core.worker-config :refer [worker-config-set-hive-image]]
             [clojure.java.jdbc :as jdbc]))
@@ -19,7 +19,7 @@
   "Deletes the hive record.  You need to have deleted all
   the hive managers first though!"
   [hive-uuid]
-  (hin/hive-images-send-hive-update-message hive-uuid)
+  (hin/hive-images-notification-send-hive-update-message hive-uuid)
   (jdbc/delete! sql-db :hives ["uuid = ?" (ensure-uuid hive-uuid)]))
 
 (defn hive-get
@@ -36,7 +36,7 @@
         result (first (jdbc/insert! sql-db :hives parameters))
         {hive-uuid :uuid} result ]
 
-    (hin/hive-images-send-hive-update-message hive-uuid)
+    (hin/hive-images-notification-send-hive-update-message hive-uuid)
     result))
 
 (defn hive-update-hive-image-url
