@@ -22,9 +22,9 @@
 
 (defn public-key-create
   "Creates a new public-key for a beekeeper"
-  [bk-uuid public-key-data]
+  [bk-uuid public-key-string]
 
   ; Tell gitolite that things have changed.
   (hin/hive-images-notification-send-beekeeper-update-message bk-uuid)
 
-  (first (jdbc/insert! sql-db :public_keys {:beekeeper_uuid (ensure-uuid bk-uuid) :key public-key-data})))
+  (first (jdbc/insert! sql-db :public_keys {:beekeeper_uuid (ensure-uuid bk-uuid) :key public-key-string})))

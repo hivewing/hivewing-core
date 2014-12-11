@@ -52,6 +52,7 @@
   "Run the commands to recompile gitolite"
   []
   (logger/info "Recompiling gitolite...")
+  (logger/ingo "Running " gitolite-shell-command)
   (shell/sh gitolite-shell-command "compile")
   (shell/sh gitolite-shell-command "trigger" "POST_COMPILE"))
 
@@ -229,7 +230,8 @@
   are available in the gitolite system
   Public_keys are unique across the system by DB design"
   [bk-uuid public-keys]
-    (let [beekeeper-keys-path (.getPath (io/file gitolite-key-root (uuid-split bk-uuid) bk-uuid))]
+    (logger/info "gitolite key root: " gitolite-key-root)
+    (let [beekeeper-keys-path (.getPath (io/file gitolite-key-root (uuid-split bk-uuid) (str bk-uuid)))]
       (logger/info "BK Keys Path: " beekeeper-keys-path)
       (logger/info "Setting " (count public-keys) " public keys on " bk-uuid)
       ; Delete the existing keys
@@ -237,8 +239,12 @@
 
       ; Generate the new keys
       (doseq [public-key public-keys]
-        (let [location (io/file beekeeper-keys-path (str (hive-image-beekeeper-public-key-name bk-uuid public-key) ".pub"))]
+        (let [location (io/file beekeeper-keys-path (str (hive-image-beekeeper-public-key-name (str bk-uuid) public-key) ".pub"))]
           (doall
+            (logger/info "Storing PK in " (.getPath location))
             (.mkdirs (io/file (.getParent location)))
             ; add them to the file system
-            (spit location (str public-key)))))))
+            (logger/info "Writing out")
+            (spit location (str public-key))
+            (logger/info "Written to " (.getPath location))
+          )))))
