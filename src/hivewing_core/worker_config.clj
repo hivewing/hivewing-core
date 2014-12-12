@@ -73,7 +73,7 @@
                          items
                          (remove #(worker-config-system-name? (get %1 :key)) items))
         ; Now map those to a hash key structure
-        kv-pairs (map #(hash-map (get % :key) (get % :data)) filtered-items)
+        kv-pairs (map #(vector (get % :key) (get % :data)) filtered-items)
         ; Now we have a result!
         result (into {} kv-pairs)]
     result
