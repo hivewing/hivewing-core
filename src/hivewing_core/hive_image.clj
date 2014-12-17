@@ -48,7 +48,6 @@
   (def repo (jgit/load-repo "/tmp/1418838486719-105021364-1/0b9cf547-c04f-4fe2-949e-94269df0dce7.git"))
   (def repo (jgit/discover-repo "/tmp/1418838486719-105021364-1/0b9cf547-c04f-4fe2-949e-94269df0dce7.git"))
 
-  (println repo)
   (def reference "master")
   (def rev-walk (jgit-i/new-rev-walk repo))
   (jgit/git-log repo)
