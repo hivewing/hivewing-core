@@ -9,13 +9,14 @@
             [digest :as digest]
             [clojure.tools.file-utils :as file-utils]
             [clj-jgit.porcelain :as jgit]
-            [clj-jgit.querying :as jgit-q]
-            [clj-jgit.internal :as jgit-i]
+            [clj-jgit.querying  :as jgit-q]
+            [clj-jgit.internal  :as jgit-i]
             [hivewing-core.configuration :as config]
             [hivewing-core.crypto :as crypto]
             [hivewing-core.hive-manager :as hive-manager]
             [clojure.data.json :as json]
             [environ.core  :refer [env]])
+
   (:import
     [java.io File FileOutputStream IOException StringWriter]
     [java.util.zip ZipEntry ZipFile ZipOutputStream]))
@@ -43,6 +44,19 @@
                                      :wait-time-seconds 1
                                      :max-number-of-messages 10
                                      :delete false)
+  (def repo (jgit/load-repo "/home/cfitzhugh/working/hivewing-docker"))
+  (def repo (jgit/load-repo "/tmp/1418838486719-105021364-1/0b9cf547-c04f-4fe2-949e-94269df0dce7.git"))
+  (def repo (jgit/discover-repo "/tmp/1418838486719-105021364-1/0b9cf547-c04f-4fe2-949e-94269df0dce7.git"))
+
+  (println repo)
+  (def reference "master")
+  (def rev-walk (jgit-i/new-rev-walk repo))
+  (jgit/git-log repo)
+  (jgit/git-status repo)
+  (jgit-q/rev-list repo rev-walk)
+  (jgit-q/branch-list-with-heads repo rev-walk)
+  (jgit-i/resolve-object repo reference)
+  (jgit-i/resolve-object repo "ccd7427b8d112923f8434454ceedc7775d001ee1")
 )
 
 (def gitolite-shell-command
@@ -126,8 +140,11 @@
   [hive-uuid reference]
   (jgit/with-repo (io/file gitolite-repositories-root (str hive-uuid ".git"))
     (try
+      (let [rev-walk (jgit-i/new-rev-walk repo)
+            object   (jgit-i/resolve-object repo reference)]
+
        ; If it's not found, this throws a nil error
-       (jgit-i/bound-commit repo (jgit-i/new-rev-walk repo) (jgit-i/resolve-object repo reference))
+       (jgit-i/bound-commit repo rev-walk object))
        (catch Exception e nil))))
 
 (def hive-image-data-bucket
@@ -152,8 +169,8 @@
       json (json/write-str policy)]
     (s3/set-bucket-policy config/s3-aws-credentials hive-image-data-bucket json)) )
 
-
 (defn hive-image-package-key
+  "Gets the address that we'll put the image package on in S3."
   [hive-uuid ^org.eclipse.jgit.revwalk.RevCommit reference]
     (digest/sha-256 (str hive-uuid (.name reference))))
 
@@ -169,7 +186,6 @@
 
 (defn hive-image-encryption-key
   [hive-uuid]
-  (println "WE NEED TO EMIT THIS IN WORKER CONFIG! as .hive-image-key")
   (digest/sha-512 hive-uuid))
 
 (defn hive-image-encrypt-package
@@ -246,5 +262,4 @@
             ; add them to the file system
             (logger/info "Writing out")
             (spit location (str public-key))
-            (logger/info "Written to " (.getPath location))
-          )))))
+            (logger/info "Written to " (.getPath location)))))))

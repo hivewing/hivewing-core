@@ -14,6 +14,7 @@
                  [biscuit "1.0.0"]
                  [clj-jgit "0.8.2"]
                  [clojure-tools "1.1.2"]
+                 [org.clojars.runa/conjure "2.1.3"]
                  [commons-lang                                "2.5"]
                  [commons-io/commons-io                       "2.4"]
                  [commons-codec                               "1.7"]

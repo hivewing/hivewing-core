@@ -3,6 +3,7 @@
             [amazonica.aws.dynamodbv2 :as ddb]
             [hivewing-core.configuration :refer [ddb-aws-credentials]]
             [hivewing-core.worker-events :as worker-events]
+            [hivewing-core.hive-image :as hi]
             [hivewing-core.pubsub :as pubsub]
             [environ.core  :refer [env]]))
 (comment
@@ -123,5 +124,5 @@
   clean-parameters))
 
 (defn worker-config-set-hive-image
-  [worker-uuid hive-image-url]
-    (worker-config-set worker-uuid {".hive-image" hive-image-url}))
+  [worker-uuid hive-image-url hive-uuid]
+    (worker-config-set worker-uuid {".hive-image" hive-image-url ".hive-image-key" (hi/hive-image-encryption-key hive-uuid)}))

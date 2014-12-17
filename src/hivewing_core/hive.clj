@@ -50,7 +50,7 @@
     (let [worker-uuids (worker-list hive-uuid :per-page per-page :page page)]
       (if (not (empty? worker-uuids))
         (pmap
-          #(worker-config-set-hive-image %1 hive-image-url)
+          #(worker-config-set-hive-image %1 hive-image-url hive-uuid)
           worker-uuids
           )
         (recur hive-uuid hive-image-url (+ 1 page) per-page)
