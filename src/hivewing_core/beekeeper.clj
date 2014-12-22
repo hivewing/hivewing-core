@@ -48,12 +48,14 @@
 (defn beekeeper-validate
   "Validate that a beekeeper can be logged in, given the email and password"
   [email password]
-  (let [bk (beekeeper-find-by-email email :include-all-fields)
-        stored-pw   (:encrypted_password bk)
-        valid (check-password password stored-pw)
-        ]
-    (if (and bk valid)
-      bk
+  (let [bk (beekeeper-find-by-email email :include-all-fields)]
+    (if bk
+      (let [stored-pw   (:encrypted_password bk)
+            valid (check-password password stored-pw)
+            ]
+        (if valid
+          bk
+          nil))
       nil)))
 
 (defn beekeeper-create

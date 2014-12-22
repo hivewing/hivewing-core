@@ -26,9 +26,10 @@
         (is false "Password is invlaid!")
         (catch Exception e ))
       (beekeeper-set-password uuid "PasswordIsGood!")
-      (is (not (beekeeper-validate (:email create-result) "GasswordIsGood!"))
+      (is (not (beekeeper-validate "NOT THE EMAIL" "GasswordIsGood!")))
+      (is (not (beekeeper-validate (:email create-result) "GasswordIsGood!")))
       (is (beekeeper-validate (:email create-result) "PasswordIsGood!"))
-    )))
+    ))
   (testing "create with a basic email address"
     (let [create-result (beekeeper-create {:email "my_email@example.com"})
           get-result (beekeeper-get (get create-result :uuid))]
