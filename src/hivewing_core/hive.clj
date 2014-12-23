@@ -7,6 +7,13 @@
             [clojure.java.jdbc :as jdbc]))
 
 
+(defn hive-can-modify?
+  [bk-uuid hive-uuid]
+  (if (and hive-uuid bk-uuid)
+    (jdbc/query sql-db ["SELECT beekeeper_uuid FROM hive_managers WHERE hive_uuid = ? AND beekeeper_uuid = ? LIMIT 1" (ensure-uuid hive-uuid) (ensure-uuid bk-uuid)] :result-set-fn first)
+    nil
+    ))
+
 (defn hive-get-permissions
   "Gets access roles for a given uuid and token"
   [hive-uuid token]
