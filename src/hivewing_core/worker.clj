@@ -50,7 +50,7 @@
   [{apiary-uuid :apiary_uuid hive-uuid :hive_uuid :as parameters}]
   (let [clean-params (assoc parameters
                             :hive_uuid (ensure-uuid hive-uuid))]
-    :apiary_uuid (ensure-uuid apiary-uuid)
+                            :apiary_uuid (ensure-uuid apiary-uuid)
     (first (jdbc/insert! sql-db :workers clean-params))))
 
 (defn worker-join-hive
