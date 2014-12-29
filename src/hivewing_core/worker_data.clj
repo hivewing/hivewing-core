@@ -31,7 +31,7 @@
 
 (defn worker-data-store
   "Stores the worker event data"
-  [ worker-uuid & args ]
+  [ worker-uuid args ]
   (let [parameters (apply hash-map args)
         clean-parameters (select-keys parameters (filter worker-data-valid-name? (keys parameters)))]
     (if (not (empty? clean-parameters))

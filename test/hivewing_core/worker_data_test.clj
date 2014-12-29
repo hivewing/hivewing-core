@@ -10,7 +10,7 @@
   (testing "worker-data-get-and-set"
     (let [worker-uuid "123"
           field-name :apples
-          stored-data (worker-data-store worker-uuid field-name "DATA")
+          stored-data (worker-data-store worker-uuid (list field-name "DATA"))
           read-data   (worker-data-read worker-uuid field-name)]
         (is (= (first (vals stored-data)) (:value (first read-data))))
         ))
