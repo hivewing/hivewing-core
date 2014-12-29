@@ -16,6 +16,7 @@
           new-worker     (worker-reset-access-token worker-uuid)
           new-access     (:access_token (worker-get worker-uuid :include-access-token true))
           ]
+      (is (not (= "unnamed" (:name (worker-get worker-uuid)))))
       (is (not (reduce = (map str [prior-access new-access]))))
         ))
 (deftest deleting-a-worker-via-worker-list
