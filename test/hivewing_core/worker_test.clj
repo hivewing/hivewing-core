@@ -8,6 +8,14 @@
 
 (use-fixtures :each clean-database)
 
+(comment
+  (def beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"})))
+  (def apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid})))
+  (def worker-uuid    (:uuid (worker-create {:apiary_uuid apiary-uuid})))
+  (def worker (worker-get worker-uuid))
+
+  )
+
 (deftest reset-a-worker-token
     (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
           apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
@@ -17,8 +25,18 @@
           new-access     (:access_token (worker-get worker-uuid :include-access-token true))
           ]
       (is (not (= "unnamed" (:name (worker-get worker-uuid)))))
+      (is (:name (worker-get worker-uuid)))
       (is (not (reduce = (map str [prior-access new-access]))))
         ))
+(deftest create-a-worker-with-name
+  (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
+        apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
+        worker         (worker-create {:name "foobar" :apiary_uuid apiary-uuid})]
+        worker-get     (worker-get (:uuid worker))
+
+    (is (= "foobar" (:name worker-get)))
+  ))
+
 (deftest deleting-a-worker-via-worker-list
   (let [{apiary-uuid :apiary-uuid hive-uuid :hive-uuid} (create-worker)]
 

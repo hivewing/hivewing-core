@@ -11,7 +11,7 @@
 (defn worker-fields-except
   [& except]
   (clj-string/join ", " (clj-set/difference
-    #{"uuid" "created_at" "updated_at" "apiary_uuid" "hive_uuid" "access_token"}
+    #{"name" "uuid" "created_at" "updated_at" "apiary_uuid" "hive_uuid" "access_token"}
     (set except))))
 
 (defn worker-list
@@ -50,11 +50,14 @@
 (defn worker-create
   [{worker-name :name
     apiary-uuid :apiary_uuid
-    hive-uuid :hive_uuid :as parameters}]
+    hive-uuid :hive_uuid
+    :as parameters}]
+  (println "workername" worker-name)
+
   (let [clean-params (assoc parameters
-                            :hive_uuid (ensure-uuid hive-uuid))]
+                            :hive_uuid (ensure-uuid hive-uuid)
                             :apiary_uuid (ensure-uuid apiary-uuid)
-                            :name  (or worker-name (namer/gen-name))
+                            :name  (or worker-name (namer/gen-name)))]
     (first (jdbc/insert! sql-db :workers clean-params))))
 
 (defn worker-join-hive

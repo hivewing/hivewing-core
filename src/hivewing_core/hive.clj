@@ -42,7 +42,7 @@
 
   (let [clean-params (assoc parameters
                             :apiary_uuid (ensure-uuid apiary-uuid)
-                            :name (or hive-name (str "home of " (namer/gen-name))))
+                            :name (or hive-name (str "home of " (namer/gen-name) "s")))
         result (first (jdbc/insert! sql-db :hives clean-params))
         {hive-uuid :uuid} result ]
 
