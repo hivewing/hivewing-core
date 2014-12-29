@@ -3,6 +3,7 @@
             [hivewing-core.core :refer [ensure-uuid]]
             [hivewing-core.worker-events :refer :all]
             [hivewing-core.worker-config :refer :all]
+            [hivewing-core.namer :as namer]
             [clojure.set :as clj-set]
             [clojure.string :as clj-string]
             [clojure.java.jdbc :as jdbc]))
@@ -47,10 +48,13 @@
                (ensure-uuid worker-uuid)] :result-set-fn first)))
 
 (defn worker-create
-  [{apiary-uuid :apiary_uuid hive-uuid :hive_uuid :as parameters}]
+  [{worker-name :name
+    apiary-uuid :apiary_uuid
+    hive-uuid :hive_uuid :as parameters}]
   (let [clean-params (assoc parameters
                             :hive_uuid (ensure-uuid hive-uuid))]
                             :apiary_uuid (ensure-uuid apiary-uuid)
+                            :name  (or worker-name (namer/gen-name))
     (first (jdbc/insert! sql-db :workers clean-params))))
 
 (defn worker-join-hive

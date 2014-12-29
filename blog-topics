@@ -1,0 +1,18 @@
+Streaming responses from the compojure API
+
+Getting simple on the request / (wirting a macro to just define what I want)
+ -- wanted to keep things testable.  Can't do full DI (databases, and such).
+    but wanted to avoid as much as possible "magic" dynamic vars.  Bleck!
+    Decided to pass the req into the layouts, views, everywhere. and pull data from that
+    as needed.
+
+With - required - params MACRO explanation
+
+Layouts of the website - layouts, etc.
+
+Paths and routes... Best of most worlds. :P
+  -- i use the paths , and in routes, I just pass in the ":hive-uuid".
+      Simple. And the mappings are obvious and visible.
+
+Defining a 404 page which dpeends on the request
+(ANY "*" {:as req} (system/not-found req))

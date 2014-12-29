@@ -1,0 +1,3 @@
+ALTER TABLE workers
+  ALTER COLUMN name SET DEFAULT "unnamed"
+  ALTER COLUMN name SET NOT NULL

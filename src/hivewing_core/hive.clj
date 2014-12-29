@@ -2,6 +2,7 @@
   (:require [hivewing-core.configuration :refer [sql-db]]
             [hivewing-core.core :refer [ensure-uuid]]
             [hivewing-core.hive-image-notification :as hin]
+            [hivewing-core.namer :as namer]
             [hivewing-core.worker :refer [worker-list]]
             [hivewing-core.worker-config :refer [worker-config-set-hive-image]]
             [clojure.java.jdbc :as jdbc]))
@@ -36,10 +37,12 @@
 
 (defn hive-create
   "Creates a new hive"
-  [{apiary-uuid :apiary_uuid :as parameters}]
+  [{hive-name :name
+    apiary-uuid :apiary_uuid :as parameters}]
 
   (let [clean-params (assoc parameters
-                            :apiary_uuid (ensure-uuid apiary-uuid))
+                            :apiary_uuid (ensure-uuid apiary-uuid)
+                            :name (or hive-name (str "home of " (namer/gen-name))))
         result (first (jdbc/insert! sql-db :hives parameters))
         {hive-uuid :uuid} result ]
 
