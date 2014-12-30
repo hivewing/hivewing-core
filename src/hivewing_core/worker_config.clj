@@ -1,6 +1,7 @@
 (ns hivewing-core.worker-config
   (:require
             [amazonica.aws.dynamodbv2 :as ddb]
+            [taoensso.timbre :as logger]
             [hivewing-core.configuration :refer [ddb-aws-credentials]]
             [hivewing-core.worker-events :as worker-events]
             [hivewing-core.hive-image :as hi]
@@ -12,6 +13,7 @@
     (worker-config-get "123")
     (worker-config-get "123" :include-system-keys true)
     (worker-config-delete "123")
+    (worker-config-set-hive-image "123" "theurlfortheimage" "hive-uuid")
   )
 ;ddb-aws-credentials
 
@@ -127,4 +129,5 @@
 
 (defn worker-config-set-hive-image
   [worker-uuid hive-image-url hive-uuid]
+    (logger/info (str "Setting hive url " hive-image-url " on worker " worker-uuid " in hive " hive-uuid))
     (worker-config-set worker-uuid {".hive-image" hive-image-url ".hive-image-key" (hi/hive-image-encryption-key hive-uuid)} :allow-system-keys true))

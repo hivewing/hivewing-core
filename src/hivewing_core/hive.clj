@@ -1,5 +1,6 @@
 (ns hivewing-core.hive
   (:require [hivewing-core.configuration :refer [sql-db]]
+            [taoensso.timbre :as logger]
             [hivewing-core.core :refer [ensure-uuid]]
             [hivewing-core.hive-image-notification :as hin]
             [hivewing-core.namer :as namer]
@@ -69,9 +70,10 @@
   ([hive-uuid hive-image-url page per-page]
     (let [worker-uuids (worker-list hive-uuid :per-page per-page :page page)]
       (if (not (empty? worker-uuids))
-        (pmap
-          #(worker-config-set-hive-image %1 hive-image-url hive-uuid)
-          worker-uuids
-          )
-        (recur hive-uuid hive-image-url (+ 1 page) per-page)
+        (do
+          (logger/info (str "Setting new hive image url on " (count worker-uuids) " workers"))
+          (map
+            #(worker-config-set-hive-image %1 hive-image-url hive-uuid)
+            worker-uuids)
+          (recur hive-uuid hive-image-url (+ 1 page) per-page))
         ))))
