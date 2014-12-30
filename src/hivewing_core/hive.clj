@@ -7,12 +7,19 @@
             [hivewing-core.worker-config :refer [worker-config-set-hive-image]]
             [clojure.java.jdbc :as jdbc]))
 
+(defn hive-can-read?
+  [bk-uuid hive-uuid]
+  (try
+    (if (and hive-uuid bk-uuid)
+      (jdbc/query sql-db ["SELECT beekeeper_uuid FROM hive_managers WHERE hive_uuid = ? AND beekeeper_uuid = ? LIMIT 1" (ensure-uuid hive-uuid) (ensure-uuid bk-uuid)] :result-set-fn first)
+      nil)
+    (catch clojure.lang.ExceptionInfo e false)))
 
 (defn hive-can-modify?
   [bk-uuid hive-uuid]
   (try
     (if (and hive-uuid bk-uuid)
-      (jdbc/query sql-db ["SELECT beekeeper_uuid FROM hive_managers WHERE hive_uuid = ? AND beekeeper_uuid = ? LIMIT 1" (ensure-uuid hive-uuid) (ensure-uuid bk-uuid)] :result-set-fn first)
+      (jdbc/query sql-db ["SELECT beekeeper_uuid FROM hive_managers WHERE hive_uuid = ? AND beekeeper_uuid = ? AND can_write = true LIMIT 1" (ensure-uuid hive-uuid) (ensure-uuid bk-uuid)] :result-set-fn first)
       nil)
     (catch clojure.lang.ExceptionInfo e false)))
 
