@@ -15,6 +15,9 @@
       (is (beekeeper-validate (:email create-result) "PasswordIsGood!"))
 )
 
+(deftest find-a-beekeeper-with-bad-uuid
+  (is (not (beekeeper-get "123"))))
+
 (deftest create-a-beekeeper
   (testing "beekeeper password"
     (let [create-result (beekeeper-create {:email "my_email@example.com"})

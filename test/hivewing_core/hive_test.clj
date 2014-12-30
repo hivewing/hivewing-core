@@ -7,6 +7,9 @@
 
 (use-fixtures :each clean-database)
 
+(deftest find-a-hive-with-invalid-uuid
+  (is (not (hive-get "123"))))
+
 (deftest create-a-hive
   (testing "create validly"
     (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))

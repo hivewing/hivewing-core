@@ -15,6 +15,8 @@
   (def worker (worker-get worker-uuid))
 
   )
+(deftest find-a-worker-with-invalid-uuid
+  (is (not (worker-get "123"))))
 
 (deftest reset-a-worker-token
     (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
@@ -31,10 +33,10 @@
 (deftest create-a-worker-with-name
   (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
         apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
-        worker         (worker-create {:name "foobar" :apiary_uuid apiary-uuid})]
-        worker-get     (worker-get (:uuid worker))
-
-    (is (= "foobar" (:name worker-get)))
+        worker         (worker-create {:name "foobar" :apiary_uuid apiary-uuid})
+        worker-get-res (worker-get (:uuid worker))]
+    (println worker-get-res)
+    (is (= "foobar" (:name worker-get-res)))
   ))
 
 (deftest deleting-a-worker-via-worker-list

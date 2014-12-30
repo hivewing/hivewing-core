@@ -32,10 +32,13 @@
 (defn beekeeper-get
   "Get the information for a given beekeeper"
   [beekeeper-uuid & opts]
-  (jdbc/query sql-db [(str "SELECT "
-                           (beekeeper-public-fields opts)
-                           "  FROM beekeepers WHERE uuid = ? LIMIT 1")
-                      (ensure-uuid beekeeper-uuid)] :result-set-fn first))
+  (try
+    (jdbc/query sql-db [(str "SELECT "
+                             (beekeeper-public-fields opts)
+                             "  FROM beekeepers WHERE uuid = ? LIMIT 1")
+                        (ensure-uuid beekeeper-uuid)] :result-set-fn first)
+    (catch clojure.lang.ExceptionInfo e false)))
+
 
 (defn beekeeper-find-by-email
   "Find the beekeeper by their email address"

@@ -33,26 +33,30 @@
 (defn worker-in-hive?
   "Is this worker in the given hive?"
   [worker-uuid hive-uuid]
-  (jdbc/query sql-db ["SELECT uuid FROM workers WHERE uuid = ? AND hive_uuid = ? LIMIT 1"
-                      (ensure-uuid worker-uuid)
-                      (ensure-uuid hive-uuid)] :result-set-fn first))
+  (try
+    (jdbc/query sql-db ["SELECT uuid FROM workers WHERE uuid = ? AND hive_uuid = ? LIMIT 1"
+                        (ensure-uuid worker-uuid)
+                        (ensure-uuid hive-uuid)] :result-set-fn first)
+    (catch java.lang.IllegalArgumentException e false)))
+
 (defn worker-get
   "Get the data for worker record.  You pass in the worker via the worker uuid.  Returns the data
   as a hashmap. DOES NOT return the access_token"
   [worker-uuid & params]
-  (let [params (apply hash-map params)]
-    (jdbc/query sql-db
-              [(str "SELECT "
-                    (worker-fields-except (if (not (:include-access-token params)) "access_token"))
-                    " FROM workers WHERE uuid = ? LIMIT 1")
-               (ensure-uuid worker-uuid)] :result-set-fn first)))
+  (try
+    (let [params (apply hash-map params)]
+      (jdbc/query sql-db
+                [(str "SELECT "
+                      (worker-fields-except (if (not (:include-access-token params)) "access_token"))
+                      " FROM workers WHERE uuid = ? LIMIT 1")
+                 (ensure-uuid worker-uuid)] :result-set-fn first))
+    (catch clojure.lang.ExceptionInfo e false)))
 
 (defn worker-create
   [{worker-name :name
     apiary-uuid :apiary_uuid
     hive-uuid :hive_uuid
     :as parameters}]
-  (println "workername" worker-name)
 
   (let [clean-params (assoc parameters
                             :hive_uuid (ensure-uuid hive-uuid)
