@@ -68,12 +68,12 @@
     (hive-update-hive-image-url hive-uuid hive-image-url 1 100))
 
   ([hive-uuid hive-image-url page per-page]
-    (let [worker-uuids (worker-list hive-uuid :per-page per-page :page page)]
+    (let [worker-uuids (map :uuid (worker-list hive-uuid :per-page per-page :page page))]
       (if (not (empty? worker-uuids))
         (do
           (logger/info (str "Setting new hive image url on " (count worker-uuids) " workers"))
-          (map
-            #(worker-config-set-hive-image %1 hive-image-url hive-uuid)
-            worker-uuids)
+          (doseq [worker-uuid worker-uuids]
+            (worker-config-set-hive-image worker-uuid hive-image-url hive-uuid))
+          (logger/info (str "Set new hive image url on " (count worker-uuids) " workers"))
           (recur hive-uuid hive-image-url (+ 1 page) per-page))
         ))))

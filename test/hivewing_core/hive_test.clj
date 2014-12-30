@@ -31,3 +31,8 @@
         (is (hive-delete (:uuid hive-result)))
         (is (not (hive-get (:uuid hive-result))))
         ))
+
+(deftest update-a-hive-image-url
+  (let [res (create-worker)
+        hive-uuid (:hive-uuid res)]
+      (hive-update-hive-image-url hive-uuid "THE-url")))
