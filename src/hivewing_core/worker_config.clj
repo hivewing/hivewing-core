@@ -105,7 +105,9 @@
   Returns true if it worked"
   [worker-uuid parameters & args]
   ; Want to split the parameters
-  (let [clean-parameters (select-keys parameters (filter #(worker-config-valid-name? %1) (keys parameters)))
+  (let [clean-parameters (if (:allow-system-keys args)
+                           parameters
+                           (select-keys parameters (filter #(worker-config-valid-name? %1) (keys parameters))))
         suppress-change-publication (:suppress-change-publication (apply hash-map args)) ]
     (doseq [kv-pair clean-parameters]
       (let [upload-data {:uuid (str worker-uuid)
@@ -125,4 +127,4 @@
 
 (defn worker-config-set-hive-image
   [worker-uuid hive-image-url hive-uuid]
-    (worker-config-set worker-uuid {".hive-image" hive-image-url ".hive-image-key" (hi/hive-image-encryption-key hive-uuid)}))
+    (worker-config-set worker-uuid {".hive-image" hive-image-url ".hive-image-key" (hi/hive-image-encryption-key hive-uuid)} :allow-system-keys true))

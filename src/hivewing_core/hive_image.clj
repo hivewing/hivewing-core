@@ -185,7 +185,7 @@
 
 (defn hive-image-encryption-key
   [hive-uuid]
-  (digest/sha-512 hive-uuid))
+  (digest/sha-512 (str hive-uuid)))
 
 (defn hive-image-encrypt-package
   [hive-uuid input-filename]
