@@ -1,5 +1,6 @@
 (ns hivewing-core.worker
   (:require [hivewing-core.configuration :refer [sql-db]]
+            [hivewing-core.hive-image-notification :as hin]
             [hivewing-core.core :refer [ensure-uuid]]
             [hivewing-core.worker-events :refer :all]
             [hivewing-core.worker-config :refer :all]
@@ -62,7 +63,9 @@
                             :hive_uuid (ensure-uuid hive-uuid)
                             :apiary_uuid (ensure-uuid apiary-uuid)
                             :name  (or worker-name (namer/gen-name)))]
-    (first (jdbc/insert! sql-db :workers clean-params))))
+    (let [res (first (jdbc/insert! sql-db :workers clean-params))]
+      (hin/hive-images-notification-send-worker-update-message (:uuid res))
+      res)))
 
 (defn worker-join-hive
   "Add a worker to a given hive. Removing it from a hive it was in before.
@@ -71,11 +74,13 @@
   [worker-uuid hive-uuid]
   ; YOU MUST UPDATE THE HIVE And worker image
   ; YOU MUST inform the worker what hive it is in!
+  (throw "ACK")
   (println "TODO"))
 
 (defn worker-join-apiary
   "Adds the worker to an apiary, setting the hive_uuid to nil"
   [worker-uuid apiary-uuid]
+  (throw "ACK")
   (println "TODO"))
 
 (defn worker-delete
@@ -86,7 +91,10 @@
   [worker-uuid]
   (worker-config-delete worker-uuid)
   (worker-events-send worker-uuid :.deleted-worker true)
-  (jdbc/delete! sql-db :workers ["uuid = ?" (ensure-uuid worker-uuid)]))
+
+  (let [res (jdbc/delete! sql-db :workers ["uuid = ?" (ensure-uuid worker-uuid)])]
+    (hin/hive-images-notification-send-worker-update-message worker-uuid)
+    res))
 
 (defn worker-access?
   "Worker given the token and uuid, can it access?"
