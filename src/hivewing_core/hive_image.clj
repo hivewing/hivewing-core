@@ -171,7 +171,7 @@
 (defn hive-image-package-key
   "Gets the address that we'll put the image package on in S3."
   [hive-uuid ^org.eclipse.jgit.revwalk.RevCommit reference]
-    (digest/sha-256 (str hive-uuid (.name reference))))
+    (str (digest/sha-256 (str hive-uuid (.name reference))) "?ref=" (.name reference)))
 
 (defn hive-image-packaged?
   "Determine if this image package exists on S3 already"
@@ -211,9 +211,11 @@
         (jgit/with-repo (io/file gitolite-repositories-root (str hive-uuid ".git"))
           (let [tree-walk (jgit-i/new-tree-walk repo reference)]
             (while (.next tree-walk)
-              (let [filename (.getPathString tree-walk)]
+              (let [filename (.getPathString tree-walk)
+                    git-repository (.getRepository repo)
+                    file-stream (.openStream (.open git-repository (jgit/get-blob-id repo reference filename) ))]
                 (.putNextEntry zip-stream (new ZipEntry filename))
-                (io/copy (jgit/get-blob repo reference filename) zip-stream)
+                (io/copy file-stream zip-stream)
                 (.closeEntry zip-stream))))))
 
       (logger/info "Created hive-image zip file")
@@ -221,7 +223,8 @@
       (let [ encrypted-file (hive-image-encrypt-package hive-uuid (str temp-file))]
         (logger/info "Encrypted hive-image zip file")
         ; Now upload
-        (with-open [ reader (clojure.java.io/input-stream encrypted-file)]
+        ;(with-open [ reader (clojure.java.io/input-stream encrypted-file)]
+        (with-open [ reader (clojure.java.io/input-stream temp-file)]
           (logger/info "Uploading hive-image zip file")
           (s3/put-object config/s3-aws-credentials
                          :bucket-name hive-image-data-bucket
