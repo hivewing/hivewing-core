@@ -35,6 +35,7 @@
   (hive-image-package-image hive-uuid reference)
   (hive-image-package-url hive-uuid reference)
   (s3/get-resource-url hive-image-data-bucket "123.zip")
+  (s3/get-url hive-image-data-bucket "123.zip")
   (hive-images-sqs-queue)
   (hive-images-send-images-update-message hive-uuid)
 
@@ -196,7 +197,11 @@
 (defn hive-image-package-url
   [hive-uuid reference]
   (let [object-key (hive-image-package-key hive-uuid reference)]
-    (s3/get-resource-url hive-image-data-bucket object-key)))
+    (if (re-find #"^http" (:endpoint config/s3-aws-credentials))
+      ; We do this via some string munging b/c it's all confusing to the system
+      (str (:endpoint config/s3-aws-credentials) "/" hive-image-data-bucket "/" object-key)
+      ; We are in normal-land, so we do it via the s3 aws lib
+      (s3/get-resource-url hive-image-data-bucket object-key))))
 
 
 (defn hive-image-package-image
