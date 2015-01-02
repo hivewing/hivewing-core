@@ -50,7 +50,7 @@
     (println "---------------------------------------------------------------------------------------------")
     ))
 
-(defn seed-database
+(defn -main
   "Add some data to the DB and print out the details"
   [& args]
 
@@ -58,7 +58,8 @@
     (do
       (println "Seeding " email pk-file hive-uuid)
         (seed-beekeeper email pk-file hive-uuid)
-        (print-beekeeper email))))
+        (print-beekeeper email)))
+    (System/exit 0))
 
 (defn setup-aws
   []
