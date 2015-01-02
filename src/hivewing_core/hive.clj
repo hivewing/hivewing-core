@@ -49,11 +49,14 @@
 (defn hive-create
   "Creates a new hive"
   [{hive-name :name
-    apiary-uuid :apiary_uuid :as parameters}]
+    apiary-uuid :apiary_uuid
+    uuid :uuid
+    :as parameters}]
 
   (let [clean-params (assoc parameters
                             :apiary_uuid (ensure-uuid apiary-uuid)
-                            :name (or hive-name (str "home of " (namer/gen-name) "s")))
+                            :name (or hive-name (str "home of " (namer/gen-name) "s"))
+                            :uuid (ensure-uuid uuid))
         result (first (jdbc/insert! sql-db :hives clean-params))
         {hive-uuid :uuid} result ]
 

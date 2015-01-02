@@ -3,22 +3,27 @@
             [hivewing-core.hive         :as hive]
             [hivewing-core.worker-config :as worker-config]
             [hivewing-core.apiary       :as apiary]
+            [hivewing-core.public-keys       :as pks]
             [hivewing-core.beekeeper    :as bk]
             [hivewing-core.hive-manager :as hm]))
 
 (defn seed-beekeeper
-  [email]
+  [email pk-filename hive-uuid]
   (let [keeper (bk/beekeeper-find-by-email email)]
     (if (nil? keeper)
       (let
         [keeper (bk/beekeeper-create {:email email})
          apiary (apiary/apiary-create {:beekeeper_uuid (:uuid keeper)})
-         hive   (hive/hive-create {:name "Default Hive" :apiary_uuid (:uuid apiary)})
+         hive   (hive/hive-create {:uuid hive-uuid :name "Default Hive" :apiary_uuid (:uuid apiary)})
          hive-manager (hm/hive-manager-create (:uuid hive) (:uuid keeper) :can_write true)
          worker (worker/worker-create {:apiary_uuid (:uuid apiary) :hive_uuid (:uuid hive)})
+         pk     (slurp pk-filename)
+         pkc    (pks/public-key-create (:uuid keeper) pk)
+         pw     (bk/beekeeper-set-password (:uuid keeper) "H1vewing")
         ]
-        (println "Created " email))))
-  )
+
+        (println "Created " email " with password H1vewing")
+        (println "Created with public-key " pk-filename )))))
 
 (defn print-beekeeper
   "Print the details / access etc for a beekeeper"
@@ -47,13 +52,13 @@
 
 (defn seed-database
   "Add some data to the DB and print out the details"
-  []
-  (doseq [email ["tim@hivewing.io" "cary@hivewing.io"]]
+  [& args]
+
+  (doseq [[email pk-file hive-uuid] (partition 3 args)]
     (do
-        (seed-beekeeper email)
-        (print-beekeeper email))
-    )
-  )
+      (println "Seeding " email pk-file hive-uuid)
+        (seed-beekeeper email pk-file hive-uuid)
+        (print-beekeeper email))))
 
 (defn setup-aws
   []
