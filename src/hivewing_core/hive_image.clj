@@ -172,7 +172,7 @@
 (defn hive-image-package-key
   "Gets the address that we'll put the image package on in S3."
   [hive-uuid ^org.eclipse.jgit.revwalk.RevCommit reference]
-    (str (digest/sha-256 (str hive-uuid (.name reference))) "?ref=" (.name reference)))
+    (str (digest/sha-256 (str hive-uuid (.name reference))) "/" (.name reference)))
 
 (defn hive-image-packaged?
   "Determine if this image package exists on S3 already"
