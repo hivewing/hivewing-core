@@ -13,6 +13,9 @@
 (def ddb-aws-credentials
   (assoc aws-credentials :endpoint   (env :hivewing-ddb-endpoint)))
 
+(def simpledb-aws-credentials
+  (assoc aws-credentials :endpoint   (env :hivewing-simpledb-endpoint)))
+
 (def sqs-aws-credentials
   (assoc aws-credentials :endpoint   (env :hivewing-sqs-endpoint)))
 

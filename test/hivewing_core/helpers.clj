@@ -2,6 +2,7 @@
   (:require [clojure.java.jdbc :as jdbc]
             [taoensso.carmine :as car ]
             [hivewing-core.hive-manager :refer :all]
+            [hivewing-core.configuration :refer [simpledb-aws-credentials]]
             [hivewing-core.configuration :refer :all]
             [hivewing-core.hive :refer :all]
             [hivewing-core.hive-image :refer :all]
@@ -11,6 +12,7 @@
             [hivewing-core.pubsub :refer :all]
             [hivewing-core.beekeeper :refer :all]
             [clj-jgit.porcelain :as cljgit]
+            [amazonica.aws.simpledb :as sdb]
             [clojure.java.io :as io]
             )
  (:import [org.eclipse.jgit.api Git InitCommand ]))
@@ -24,8 +26,26 @@
   (redis (car/flushall))
 
   (jdbc/execute! sql-db ["TRUNCATE TABLE beekeepers, apiaries, hive_managers, hives, workers, public_keys"])
+
+  ;; Clear out the simpleDB
+
+  (map #(sdb/delete-domain simpledb-aws-credentials :domain-name %) (:domain-names (sdb/list-domains simpledb-aws-credentials)))
   (test-function)
   )
+
+(defn create-hive
+  []
+  (let [
+          beekeeper-uuid (:uuid (beekeeper-create {:email "my_hive@example.com"}))
+          apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
+          hive-uuid      (:uuid (hive-create {:apiary_uuid apiary-uuid}))
+          hive-manager-uuid (:uuid   (hive-manager-create hive-uuid beekeeper-uuid))
+        ]
+
+      (hash-map  :beekeeper-uuid beekeeper-uuid
+                 :apiary-uuid apiary-uuid
+                 :hive-uuid hive-uuid
+                 :hive-manager-uuid hive-manager-uuid)))
 
 (defn create-worker
   []
