@@ -4,7 +4,6 @@
             [taoensso.timbre :as logger]
             [digest :as digest]
             [hivewing-core.core :refer [ensure-uuid]]
-            [hivewing-core.configuration :refer [simpledb-aws-credentials]]
             [environ.core  :refer [env]]
             [clojure.java.jdbc :as jdbc]))
 
