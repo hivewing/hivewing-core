@@ -63,5 +63,5 @@
 
 (defn setup-aws
   []
-    (worker-config/worker-ensure-tables)
+
   )
