@@ -11,7 +11,7 @@
   (worker-config-get (:worker-uuid res))
   (worker-config-get (:worker-uuid res) :include-system-keys true)
   (worker-config-set (:worker-uuid res) {"apple" "saucerse"} )
-  (worker-config-set (:worker-uuid res) {"apple2" "saucerse"} )
+  (worker-config-set (:worker-uuid res) {"apple" "other" "big" "boy" "paara" "sdsdfsdf"} )
   (worker-config-set (:worker-uuid res) {".system-config" 123} :allow-system-keys false)
   (worker-config-set (:worker-uuid res) {".system-config" 123} :allow-system-keys true)
 

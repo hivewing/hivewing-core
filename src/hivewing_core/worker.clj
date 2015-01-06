@@ -99,7 +99,7 @@
 (defn worker-access?
   "Worker given the token and uuid, can it access?"
   [worker-uuid access-token]
-  (jdbc/query sql-db ["SELECT uuid FROM workers WHERE uuid = ? AND access_token = ? LIMIT 1"
+  (jdbc/query sql-db ["SELECT * FROM workers WHERE uuid = ? AND access_token = ? LIMIT 1"
                       (ensure-uuid worker-uuid)
                       (ensure-uuid access-token)] :result-set-fn first))
 

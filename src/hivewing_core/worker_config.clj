@@ -93,8 +93,10 @@
                       :data (pg-json/value-to-json-pgobject value)}))))))
 
     (let [[only-current only-new things-in-both] (clojure.data/diff current-params clean-parameters)]
-      (if (and (not suppress-change-publication) (nil? only-current) (nil? only-new))
-        (pubsub/publish-message (worker-config-updates-channel worker-uuid) clean-parameters)))))
+      (if (and (not suppress-change-publication) (not (nil? only-new)))
+        (do
+          (logger/info "Notifying of changes to worker-config" worker-uuid)
+          (pubsub/publish-message (worker-config-updates-channel worker-uuid) clean-parameters))))))
 
 (defn worker-config-set-hive-image
   [worker-uuid hive-image-url hive-uuid]
