@@ -2,20 +2,15 @@
   (:require
             [amazonica.aws.dynamodbv2 :as ddb]
             [taoensso.timbre :as logger]
-            [hivewing-core.configuration :refer [ddb-aws-credentials]]
+            [hivewing-core.configuration :refer [sql-db]]
             [hivewing-core.worker-events :as worker-events]
+            [hivewing-core.core :refer [ensure-uuid]]
             [hivewing-core.hive-image :as hi]
             [hivewing-core.pubsub :as pubsub]
+            [hivewing-core.postgres-json :as pg-json]
+            [clojure.java.jdbc :as jdbc]
+            [clojure.data :as clj-data]
             [environ.core  :refer [env]]))
-(comment
-    (worker-config-set "123" {".hive-images" "http://123456"})
-    (worker-config-set "123" {"not-system.hive-images2" "http://123456"})
-    (worker-config-get "123")
-    (worker-config-get "123" :include-system-keys true)
-    (worker-config-delete "123")
-    (worker-config-set-hive-image "123" "theurlfortheimage" "hive-uuid")
-  )
-;ddb-aws-credentials
 
 (defn worker-config-updates-channel
   "Generates the channel worker config updates are on"
@@ -32,100 +27,74 @@
   [name]
   (boolean (re-find #"^((\.)?[a-zA-Z0-9_\-])+" name)))
 
-(def ddb-worker-table
-  "The DDB table which stores the configuration"
-  (env :hivewing-ddb-worker-config-table))
-
-(defn worker-ensure-tables [ & opt]
-  "Setup the worker table just like we need it set up.  uuid string, and key range-key"
-  (if (= opt :delete-first)
-    (ddb/delete-table ddb-aws-credentials :table-name ddb-worker-table))
-
-  (try
-    (ddb/describe-table ddb-aws-credentials :table-name ddb-worker-table)
-    (catch com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException e
-      (ddb/create-table ddb-aws-credentials
-                        :table-name ddb-worker-table
-                        :key-schema [{:attribute-name "uuid" :key-type "HASH"}
-                                     {:attribute-name "key"  :key-type "RANGE"}]
-                        :attribute-definitions
-                                    [{:attribute-name "uuid" :attribute-type "S"}
-                                     {:attribute-name "key"  :attribute-type "S"}]
-                                     ;{:attribute-name "_uat" :attribute-type "N"}
-                                     ;{:attribute-name "data" :attribute-type "S"}]
-                        :provisioned-throughput
-                                    {:read-capacity-units 1
-                                     :write-capacity-units 1}))))
-
-
 (defn worker-config-get
   "Given a valid worker-uuid, it will return the configuration 'hash'.
   If you give a non-existent worker-uuid you get back {}
   Pass in :include-system-keys to get back *all* keys (including system ones)"
-  [worker-uuid & params-array]
-  (let [params (apply hash-map params-array)
-        include-system-keys? (:include-system-keys params)
-        result (ddb/query ddb-aws-credentials
-                          :table-name ddb-worker-table
-                          :select "ALL_ATTRIBUTES"
-                          :key-conditions
-                            {:uuid {:attribute-value-list [(str worker-uuid)] :comparison-operator "EQ"}})
-        items (:items result)
+  [worker-uuid & params]
+
+  (try
+    (let [params (apply hash-map params)
+          include-system-keys? (:include-system-keys params)
+          items (jdbc/query sql-db
+                  [(str "SELECT * "
+                        " FROM worker_configs "
+                        " WHERE worker_uuid = ?")
+                   (ensure-uuid worker-uuid)])
         ; Filter out the system keys if needed
-        filtered-items (if include-system-keys?
+          filtered-items (if include-system-keys?
                          items
                          (remove #(worker-config-system-name? (get %1 :key)) items))
         ; Now map those to a hash key structure
-        kv-pairs (map #(vector (get % :key) (get % :data)) filtered-items)
-        ; Now we have a result!
-        result (into {} kv-pairs)]
-    result
-  ))
+          kv-pairs (map #(vector (get % :key) (get % :data)) filtered-items)
+          result (into {} kv-pairs)
+         ]
+      result)
+      ;;result)
+    (catch clojure.lang.ExceptionInfo e false)))
 
 (defn worker-config-delete
   "Deletes all the keys and such for a given worker. The worker was deleted
   so we should delete!"
   [worker-uuid]
-  (let [result (ddb/query ddb-aws-credentials
-                          :table-name ddb-worker-table
-                          :select "ALL_ATTRIBUTES"
-                          :key-conditions
-                            {:uuid {:attribute-value-list [(str worker-uuid)] :comparison-operator "EQ"}}
-                            )
-        items (:items result)]
-      (doseq [config items]
-        (ddb/delete-item ddb-aws-credentials
-                      :table-name ddb-worker-table
-                      :key {:uuid {:s (:uuid config)}
-                            :key  {:s (:key  config)}}))))
-
-;  (worker-events/worker-events-send worker-uuid ".worker-deleted" true))
+  (jdbc/delete! sql-db :worker_configs ["worker_uuid = ?" (ensure-uuid worker-uuid)]))
 
 (defn worker-config-set
   "Set the configuration on the worker. Provided a uuid and the paramters as a hash.
   The keys for the parameters should be strings or keywords.
+  If the param value is nil, we'll delete the key
   Returns true if it worked"
   [worker-uuid parameters & args]
   ; Want to split the parameters
-  (let [clean-parameters (if (:allow-system-keys args)
-                           parameters
-                           (select-keys parameters (filter #(worker-config-valid-name? %1) (keys parameters))))
-        suppress-change-publication (:suppress-change-publication (apply hash-map args)) ]
-    (doseq [kv-pair clean-parameters]
-      (let [upload-data {:uuid (str worker-uuid)
-                         :key  (name (get kv-pair 0)),
-                         :_uat (System/currentTimeMillis),
-                         :data (str (get kv-pair 1))
-                 }
-            old-data (ddb/put-item ddb-aws-credentials
-                      :table-name ddb-worker-table
-                      :item upload-data
-                      :return-values "ALL_OLD")]
 
-        (if (not (= (get upload-data :data ) (get-in old-data [:attributes :data])))
-          (if (not suppress-change-publication)
-            (pubsub/publish-message (worker-config-updates-channel worker-uuid) clean-parameters)))))
-  clean-parameters))
+  (let [args (apply hash-map args)
+        clean-parameters (if (:allow-system-keys args)
+                           ;; If we allow system keys - only needs valid
+                           (select-keys parameters (filter #(worker-config-valid-name? %1) (keys parameters)))
+                           ;; If we don't allow system keys - needs valid AND not system-name
+                           (select-keys parameters (filter #(and (worker-config-valid-name? %1) (not (worker-config-system-name? %1))) (keys parameters))))
+        current-params   (worker-config-get worker-uuid :include-system-keys true)
+        suppress-change-publication (:suppress-change-publication args)
+        ]
+
+    (doseq [[key-name value] clean-parameters]
+      (if (nil? value)
+        ; Delete this field
+        (jdbc/delete! sql-db :worker_configs ["worker_uuid = ? AND LOWER(key) = LOWER(?)" (ensure-uuid worker-uuid) key-name])
+        (do
+          (let [update (jdbc/update! sql-db :worker_configs
+                       {:data (pg-json/value-to-json-pgobject value)}
+                       ["worker_uuid = ? AND LOWER(key) = LOWER(?)"
+                        (ensure-uuid worker-uuid) key-name])]
+            (if (= 0 (first update))
+                   (jdbc/insert! sql-db :worker_configs
+                     {:worker_uuid (ensure-uuid worker-uuid)
+                      :key (clojure.string/lower-case key-name)
+                      :data (pg-json/value-to-json-pgobject value)}))))))
+
+    (let [[only-current only-new things-in-both] (clojure.data/diff current-params clean-parameters)]
+      (if (and (not suppress-change-publication) (nil? only-current) (nil? only-new))
+        (pubsub/publish-message (worker-config-updates-channel worker-uuid) clean-parameters)))))
 
 (defn worker-config-set-hive-image
   [worker-uuid hive-image-url hive-uuid]

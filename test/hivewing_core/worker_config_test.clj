@@ -1,10 +1,21 @@
 (ns hivewing-core.worker-config-test
   (:require [clojure.test :refer :all]
             [hivewing-core.helpers :as helpers]
+            [hivewing-core.postgres-json]
+            [clojure.java.jdbc :as jdbc]
             [hivewing-core.worker-config :refer :all]))
 
 (use-fixtures :each helpers/clean-database)
+(comment
+  (def res (helpers/create-worker))
+  (worker-config-get (:worker-uuid res))
+  (worker-config-get (:worker-uuid res) :include-system-keys true)
+  (worker-config-set (:worker-uuid res) {"apple" "saucerse"} )
+  (worker-config-set (:worker-uuid res) {"apple2" "saucerse"} )
+  (worker-config-set (:worker-uuid res) {".system-config" 123} :allow-system-keys false)
+  (worker-config-set (:worker-uuid res) {".system-config" 123} :allow-system-keys true)
 
+  )
 (deftest create-a-worker
   (testing "system names"
       (is (worker-config-system-name? ".system-name"))
@@ -37,3 +48,11 @@
           (is (empty? (worker-config-get worker-uuid)))
       )
     ))
+
+(deftest worker-config-delete-field
+  (let [{worker-uuid :worker-uuid} (helpers/create-worker)]
+      (worker-config-set worker-uuid {"1" 1})
+      (worker-config-set worker-uuid {"2" 2})
+      (worker-config-set worker-uuid {"3" 3})
+      (worker-config-set worker-uuid {"1" nil})
+      (is (nil? (get (worker-config-get worker-uuid) "1")))))

@@ -2,7 +2,6 @@
   (:require [clojure.java.jdbc :as jdbc]
             [taoensso.carmine :as car ]
             [hivewing-core.hive-manager :refer :all]
-            [hivewing-core.configuration :refer [simpledb-aws-credentials]]
             [hivewing-core.configuration :refer :all]
             [hivewing-core.hive :refer :all]
             [hivewing-core.hive-image :refer :all]
@@ -12,24 +11,17 @@
             [hivewing-core.pubsub :refer :all]
             [hivewing-core.beekeeper :refer :all]
             [clj-jgit.porcelain :as cljgit]
-            [amazonica.aws.simpledb :as sdb]
             [clojure.java.io :as io]
             )
  (:import [org.eclipse.jgit.api Git InitCommand ]))
 
 (defn clean-database [test-function]
-  ; Clear out the DDB tables.
-  (worker-ensure-tables :delete_first)
-
   ; Clear the hive-images
   (ensure-hive-image-bucket :delete_first)
   (redis (car/flushall))
 
-  (jdbc/execute! sql-db ["TRUNCATE TABLE beekeepers, apiaries, hive_managers, hives, workers, public_keys"])
+  (jdbc/execute! sql-db ["TRUNCATE TABLE beekeepers, apiaries, hive_managers, hives, workers, public_keys, hivelogs, worker_configs"])
 
-  ;; Clear out the simpleDB
-
-  (map #(sdb/delete-domain simpledb-aws-credentials :domain-name %) (:domain-names (sdb/list-domains simpledb-aws-credentials)))
   (test-function)
   )
 

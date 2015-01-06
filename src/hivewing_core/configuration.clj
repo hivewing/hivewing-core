@@ -5,16 +5,10 @@
     [environ.core  :refer [env]]))
 
 (def aws-credentials
-  "The AWS Credentials to connect to ddb"
+  "The AWS Credentials to connect to AWS"
   {:access-key (env :hivewing-aws-access-key),
    :secret-key (env :hivewing-aws-secret-key)}
   )
-
-(def ddb-aws-credentials
-  (assoc aws-credentials :endpoint   (env :hivewing-ddb-endpoint)))
-
-(def simpledb-aws-credentials
-  (assoc aws-credentials :endpoint   (env :hivewing-simpledb-endpoint)))
 
 (def sqs-aws-credentials
   (assoc aws-credentials :endpoint   (env :hivewing-sqs-endpoint)))
