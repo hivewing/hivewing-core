@@ -20,10 +20,10 @@
 (deftest create-a-hive-with-specific-uuid
   (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
         apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
-        uuid            "12345678-1234-1234-1234-123456789012"
+        uuid           #uuid "12345678-1234-1234-1234-123456789012"
         hive-result    (hive-create {:uuid uuid :apiary_uuid apiary-uuid})
         hive-retrieval (hive-get (:uuid hive-result))]
-      (is (= uuid (:uuid hive-result)))
+      (is (= (str uuid) (str (:uuid hive-result))))
       ))
 
 (deftest create-a-hive
