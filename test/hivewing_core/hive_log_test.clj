@@ -37,6 +37,8 @@
       (is (= "Log2" (:message (first res)))))
     (let [res (hive-logs-read hive-uuid)]
       (is (=  4 (count res))))
+    (let [res (hive-logs-read hive-uuid :worker-uuid worker-uuid)]
+      (is (=  3 (count res))))
     (let [res (hive-logs-read hive-uuid :task "task-name2" )]
       (is (=  1 (count res)))
       (is (= "Log2" (:message (first res)))))

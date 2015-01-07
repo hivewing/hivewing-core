@@ -20,8 +20,9 @@
           query-array (filter identity [(str
                        "SELECT * FROM hivelogs WHERE at < ? "
                        " AND hive_uuid = ? "
-                       (if worker-uuid " AND worker-uuid = ? ")
-                       (if task " AND task = ? ")
+                       (if worker-uuid " AND worker_uuid = ? ")
+                       (if task " AND task = ? "
+                         (if (contains? args :task) " AND task IS NULL "))
                        " ORDER BY at DESC LIMIT 250")
 
                       start-at
