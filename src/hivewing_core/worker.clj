@@ -64,6 +64,7 @@
                             :apiary_uuid (ensure-uuid apiary-uuid)
                             :name  (or worker-name (namer/gen-name)))]
     (let [res (first (jdbc/insert! sql-db :workers clean-params))]
+      (worker-config-set (:uuid res) {".tasks" ["workera" "workerb"]})
       (hin/hive-images-notification-send-worker-update-message (:uuid res))
       res)))
 
