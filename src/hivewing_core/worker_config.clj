@@ -53,6 +53,12 @@
       ;;result)
     (catch clojure.lang.ExceptionInfo e false)))
 
+(defn worker-config-get-tasks
+  "Get the tasks for this worker"
+  [worker-uuid]
+  (get (worker-config-get worker-uuid :include-system-keys true) ".tasks"))
+
+
 (defn worker-config-delete
   "Deletes all the keys and such for a given worker. The worker was deleted
   so we should delete!"
