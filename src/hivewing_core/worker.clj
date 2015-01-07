@@ -1,5 +1,6 @@
 (ns hivewing-core.worker
   (:require [hivewing-core.configuration :refer [sql-db]]
+            [taoensso.timbre :as logger]
             [hivewing-core.hive-image-notification :as hin]
             [hivewing-core.core :refer [ensure-uuid]]
             [hivewing-core.worker-events :refer :all]
@@ -63,9 +64,11 @@
                             :hive_uuid (ensure-uuid hive-uuid)
                             :apiary_uuid (ensure-uuid apiary-uuid)
                             :name  (or worker-name (namer/gen-name)))]
-    (let [res (first (jdbc/insert! sql-db :workers clean-params))]
-      (worker-config-set (:uuid res) {".tasks" ["workera" "workerb"]})
-      (hin/hive-images-notification-send-worker-update-message (:uuid res))
+    (let [res (first (jdbc/insert! sql-db :workers clean-params))
+          uuid (:uuid res)]
+      (logger/info "Setting initial worker configuration...")
+      (worker-config-set uuid {".tasks" ["workera" "workerb"]} :allow-system-keys true)
+      (hin/hive-images-notification-send-worker-update-message uuid)
       res)))
 
 (defn worker-join-hive
