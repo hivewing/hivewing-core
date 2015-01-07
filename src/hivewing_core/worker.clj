@@ -67,7 +67,7 @@
     (let [res (first (jdbc/insert! sql-db :workers clean-params))
           uuid (:uuid res)]
       (logger/info "Setting initial worker configuration...")
-      (worker-config-set uuid {".tasks" ["workera" "workerb"]} :allow-system-keys true)
+      ;;(worker-config-set uuid {".tasks" ["workera" "workerb"]} :allow-system-keys true)
       (hin/hive-images-notification-send-worker-update-message uuid)
       res)))
 
