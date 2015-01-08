@@ -10,6 +10,7 @@
             [clojure.java.jdbc :as jdbc]
             [clojure.data :as clj-data]
             [environ.core  :refer [env]]))
+
 (defn tasks-key
   [keyname]
   (str ".tasks." keyname))
@@ -72,7 +73,6 @@
         result (into {} kv-pairs) ]
     result
   ))
-
 (defn worker-config-get-tracing
   [worker-uuid]
   (let [task-names (keys (worker-config-get-tasks worker-uuid))]
@@ -134,6 +134,15 @@
         (do
           (logger/info "Notifying of changes to worker-config" worker-uuid)
           (pubsub/publish-message (worker-config-updates-channel worker-uuid) clean-parameters))))))
+
+(defn worker-config-set-tracing
+  [worker-uuid task state]
+    (if state
+      ;; Set with start time
+      (worker-config-set worker-uuid (hash-map (tracing-key task) (str (.getTime (java.util.Date.)))) :allow-system-keys true)
+      ;; Deletes
+      (worker-config-set worker-uuid (hash-map (tracing-key task) nil) :allow-system-keys true)))
+
 
 (defn worker-config-set-hive-image
   [worker-uuid hive-image-url hive-uuid]

@@ -22,6 +22,15 @@
   (str "worker:" worker-uuid ":events"))
 
 (defn worker-events-send
-  "Sends the worker events"
+  "Sends the worker events
+  worker-uuid event-name event-value"
   [ worker-uuid & args ]
   (pubsub/publish-message (worker-events-channel worker-uuid) (apply hash-map args)))
+
+(defn worker-events-send-reboot
+  [worker-uuid]
+  (worker-events-send worker-uuid ".reboot" (.getTime (java.util.Date.))))
+
+(defn worker-events-send-reset
+  [worker-uuid]
+  (worker-events-send worker-uuid ".reset" (.getTime (java.util.Date.))))

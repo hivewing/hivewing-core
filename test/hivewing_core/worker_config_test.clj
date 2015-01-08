@@ -77,13 +77,18 @@
       (worker-config-set worker-uuid {".tasks.worker2" "running"} :allow-system-keys true)
       (worker-config-set worker-uuid {".tasks.worker3" "stopped"} :allow-system-keys true)
 
-
-      (worker-config-set worker-uuid {".tracing.worker3" "tracing true but any val is good"} :allow-system-keys true)
-
       (let [tracing (worker-config-get-tracing worker-uuid)]
         (is (not (get tracing "worker1")))
         (is (not (get tracing "worker2")))
-        (is (get tracing "worker3"))
+        (is (not (get tracing "worker3")))
+        (is (= ["worker1" "worker2" "worker3"] (sort (keys tracing)))))
+
+
+      (worker-config-set-tracing worker-uuid "worker1" true)
+      (let [tracing (worker-config-get-tracing worker-uuid)]
+        (is (get tracing "worker1"))
+        (is (not (get tracing "worker2")))
+        (is (not (get tracing "worker3")))
         (is (= ["worker1" "worker2" "worker3"] (sort (keys tracing)))))))
 
 (deftest worker-config-tasks
