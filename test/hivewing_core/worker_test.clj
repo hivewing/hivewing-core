@@ -1,8 +1,10 @@
 (ns hivewing-core.worker-test
   (:require [clojure.test :refer :all]
             [hivewing-core.helpers :refer :all]
+            [hivewing-core.worker-config :refer :all]
             [hivewing-core.worker :refer :all]
             [hivewing-core.hive :refer :all]
+            [hivewing-core.hive-logs :refer :all]
             [hivewing-core.apiary :refer :all]
             [hivewing-core.beekeeper :refer :all]))
 
@@ -68,3 +70,12 @@
       (worker-delete worker-uuid))
     (is (empty? (worker-list hive-uuid :page 1 :per-page 100)))
   ))
+
+(deftest delete-a-worker-test
+  (let [{worker-uuid :worker-uuid hive-uuid :hive-uuid} (create-worker)]
+      (worker-config-set worker-uuid {".tasks.worker1" "running"} :allow-system-keys true)
+      (worker-config-set worker-uuid {".tasks.worker2" "running"} :allow-system-keys true)
+      (worker-config-set worker-uuid {".tasks.worker3" "stopped"} :allow-system-keys true)
+      (hive-logs-push hive-uuid worker-uuid nil "System log!")
+
+      (worker-delete worker-uuid)))

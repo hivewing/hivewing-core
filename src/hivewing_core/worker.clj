@@ -5,6 +5,7 @@
             [hivewing-core.core :refer [ensure-uuid]]
             [hivewing-core.worker-events :refer :all]
             [hivewing-core.worker-config :refer :all]
+            [hivewing-core.hive-logs :refer :all]
             [hivewing-core.namer :as namer]
             [clojure.set :as clj-set]
             [clojure.string :as clj-string]
@@ -106,6 +107,11 @@
   [worker-uuid]
   (worker-config-delete worker-uuid)
   (worker-events-send worker-uuid :.deleted-worker true)
+
+  (logger/info "Deleting worker config" worker-uuid)
+  (worker-config-delete worker-uuid)
+  (logger/info "Deleting worker from hive-logs" worker-uuid)
+  (hive-logs-purge-worker worker-uuid)
 
   (let [res (jdbc/delete! sql-db :workers ["uuid = ?" (ensure-uuid worker-uuid)])]
     (hin/hive-images-notification-send-worker-update-message worker-uuid)

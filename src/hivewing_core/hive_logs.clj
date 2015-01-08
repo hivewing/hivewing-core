@@ -7,6 +7,10 @@
             [environ.core  :refer [env]]
             [clojure.java.jdbc :as jdbc]))
 
+(defn hive-logs-purge-worker
+  [worker-uuid]
+  (jdbc/delete! sql-db :hivelogs ["worker_uuid = ?" (ensure-uuid worker-uuid)]))
+
 (defn hive-logs-read
   "Read hive logs, with a simple filter available.
   You can read logs sequentially, filtered by hive, worker (maybe)
