@@ -4,7 +4,7 @@ CREATE TABLE worker_configs (
   worker_uuid uuid REFERENCES workers (uuid) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE,
   key varchar(255) NOT NULL,
-  data JSON DEFAULT '{}'::JSON
+  data varchar(1024) DEFAULT ''
 );
 
 CREATE TRIGGER set_updated_at_worker_configs

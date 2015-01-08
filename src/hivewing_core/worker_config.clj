@@ -13,6 +13,9 @@
 (defn tasks-key
   [keyname]
   (str ".tasks." keyname))
+(defn tracing-key
+  [keyname]
+  (str ".tracing." keyname))
 
 (defn worker-config-updates-channel
   "Generates the channel worker config updates are on"
@@ -54,6 +57,23 @@
       result)
       ;;result)
     (catch clojure.lang.ExceptionInfo e false)))
+
+(defn worker-config-get-tracing
+  [worker-uuid]
+  (let [task-names (keys (worker-config-get-tasks worker-uuid))]
+    (let [
+        sql   (str "SELECT * "
+                   " FROM worker_configs "
+                   " WHERE worker_uuid = ? "
+                   " AND key LIKE ?")
+
+        items (jdbc/query sql-db [ sql (ensure-uuid worker-uuid) (tracing-key "%") ])
+        kv-pairs       (map #(vector (clojure.string/replace (get % :key) (tracing-key "") "") true) items)
+        from-db (into {} kv-pairs)
+        ;; ALl tasks are "false", unless merged and made true
+        all-tasks-hash (into {} (map #(vector % (get from-db %)) task-names))
+        ]
+      all-tasks-hash)))
 
 (defn worker-config-get-tasks
   "Get the tasks for this worker"
