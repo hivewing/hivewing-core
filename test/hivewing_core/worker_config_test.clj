@@ -1,6 +1,7 @@
 (ns hivewing-core.worker-config-test
   (:require [clojure.test :refer :all]
             [hivewing-core.helpers :as helpers]
+            [hivewing-core.configuration :refer [sql-db]]
             [hivewing-core.postgres-json]
             [clojure.java.jdbc :as jdbc]
             [hivewing-core.worker-config :refer :all]))
@@ -56,3 +57,24 @@
       (worker-config-set worker-uuid {"3" 3})
       (worker-config-set worker-uuid {"1" nil})
       (is (nil? (get (worker-config-get worker-uuid) "1")))))
+(comment
+
+  (def worker-uuid (:worker-uuid (helpers/create-worker)))
+      (worker-config-set worker-uuid {".tasks.worker1" "running"} :allow-system-keys true)
+      (worker-config-set worker-uuid {".tasks.worker2" "running"} :allow-system-keys true)
+      (worker-config-set worker-uuid {".tasks.worker3" "stopped"} :allow-system-keys true)
+      (println (jdbc/query sql-db
+         ["SELECT * FROM worker_configs WHERE worker_uuid = ? AND key LIKE '.tasks.%'"
+          worker-uuid]))
+      (println (jdbc/query sql-db
+         ["SELECT * FROM worker_configs WHERE worker_uuid = ? " worker-uuid]))
+      (worker-config-get-tasks worker-uuid)
+  )
+(deftest worker-config-tasks
+  (let [{worker-uuid :worker-uuid} (helpers/create-worker)]
+      (worker-config-set worker-uuid {".tasks.worker1" "running"} :allow-system-keys true)
+      (worker-config-set worker-uuid {".tasks.worker2" "running"} :allow-system-keys true)
+      (worker-config-set worker-uuid {".tasks.worker3" "stopped"} :allow-system-keys true)
+      (let [tasks (worker-config-get-tasks worker-uuid)]
+        (is (= 3 (count tasks)))
+        (is (= ["worker1" "worker2" "worker3"] (sort (keys tasks)))))))

@@ -1,6 +1,5 @@
 (ns hivewing-core.worker-config
   (:require
-            [amazonica.aws.dynamodbv2 :as ddb]
             [taoensso.timbre :as logger]
             [hivewing-core.configuration :refer [sql-db]]
             [hivewing-core.worker-events :as worker-events]
@@ -11,6 +10,9 @@
             [clojure.java.jdbc :as jdbc]
             [clojure.data :as clj-data]
             [environ.core  :refer [env]]))
+(defn tasks-key
+  [keyname]
+  (str ".tasks." keyname))
 
 (defn worker-config-updates-channel
   "Generates the channel worker config updates are on"
@@ -56,8 +58,17 @@
 (defn worker-config-get-tasks
   "Get the tasks for this worker"
   [worker-uuid]
-  (get (worker-config-get worker-uuid :include-system-keys true) ".tasks"))
-
+  (let [
+        sql   (str "SELECT * "
+                        " FROM worker_configs "
+                        " WHERE worker_uuid = ? "
+                        " AND key LIKE ?")
+        items (jdbc/query sql-db [ sql (ensure-uuid worker-uuid) (tasks-key "%")])
+        kv-pairs (map #(vector (clojure.string/replace (get % :key) (tasks-key "") "")
+                               (get % :data)) items)
+        result (into {} kv-pairs) ]
+    result
+  ))
 
 (defn worker-config-delete
   "Deletes all the keys and such for a given worker. The worker was deleted
