@@ -39,6 +39,21 @@
     (is (= "foobar" (:name worker-get-res)))
   ))
 
+(deftest create-with-blank-name-autogen
+  (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
+        apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
+        worker         (worker-create {:name "" :apiary_uuid apiary-uuid})
+        worker-get-res (worker-get (:uuid worker))]
+    (is (not (= "" (:name worker-get-res))))))
+
+(deftest updating-worker-name
+  (let [{worker-uuid :worker-uuid } (create-worker)
+        worker-name (:name (worker-get worker-uuid))
+                           ]
+    (worker-set-name worker-uuid "new-name")
+    (is (= "new-name" (:name (worker-get worker-uuid))))))
+
+
 (deftest deleting-a-worker-via-worker-list
   (let [{apiary-uuid :apiary-uuid hive-uuid :hive-uuid} (create-worker)]
 

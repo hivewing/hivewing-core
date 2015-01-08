@@ -41,6 +41,11 @@
                         (ensure-uuid hive-uuid)] :result-set-fn first)
     (catch java.lang.IllegalArgumentException e false)))
 
+(comment
+  (def params {:include-access-token false})
+  (worker-fields-except (if (not (:include-access-token params)) "access_token"))
+
+  )
 (defn worker-get
   "Get the data for worker record.  You pass in the worker via the worker uuid.  Returns the data
   as a hashmap. DOES NOT return the access_token"
@@ -63,11 +68,10 @@
   (let [clean-params (assoc parameters
                             :hive_uuid (ensure-uuid hive-uuid)
                             :apiary_uuid (ensure-uuid apiary-uuid)
-                            :name  (or worker-name (namer/gen-name)))]
+                            :name  (if (empty? worker-name) (namer/gen-name) worker-name)
+                            )]
     (let [res (first (jdbc/insert! sql-db :workers clean-params))
           uuid (:uuid res)]
-      (logger/info "Setting initial worker configuration...")
-      ;;(worker-config-set uuid {".tasks" ["workera" "workerb"]} :allow-system-keys true)
       (hin/hive-images-notification-send-worker-update-message uuid)
       res)))
 
@@ -86,6 +90,13 @@
   [worker-uuid apiary-uuid]
   (throw "ACK")
   (println "TODO"))
+
+(defn worker-set-name
+  "Set the name on this worker"
+  [worker-uuid worker-name]
+  (println "Setting " worker-name)
+  (jdbc/execute! sql-db ["UPDATE workers SET name = ? WHERE uuid = ?"
+                         worker-name (ensure-uuid worker-uuid)]))
 
 (defn worker-delete
   "Deletes a worker.
