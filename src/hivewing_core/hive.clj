@@ -70,6 +70,12 @@
   (jdbc/execute! sql-db ["UPDATE hives SET name = ? WHERE uuid = ?"
                          hive-name (ensure-uuid hive-uuid)]))
 
+(defn hive-set-image-branch
+  "Set the image-branch on this hive"
+  [hive-uuid image-branch]
+  (let [res (jdbc/execute! sql-db ["UPDATE hives SET image_branch = ? WHERE uuid = ?" image-branch (ensure-uuid hive-uuid)])]
+    (hin/hive-images-notification-send-hive-update-message hive-uuid)))
+
 (defn hive-update-hive-image-url
   "Set this value on every worker in the given hive.
   Will publish a change message for any worker which

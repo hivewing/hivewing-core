@@ -18,19 +18,24 @@
   [hive-uuid & args]
     (let [args (apply hash-map args)
           start-at (or (:start-at args) (java.sql.Timestamp. (.getTime (java.util.Date.))))
+          end-at   (:end-at args)
           worker-uuid (ensure-uuid (:worker-uuid args))
           task (:task args)
           hive-uuid (ensure-uuid hive-uuid)
           query-array (filter identity [(str
                        "SELECT * FROM hivelogs WHERE at < ? "
                        " AND hive_uuid = ? "
-                       (if worker-uuid " AND worker_uuid = ? ")
+                       (if end-at " AND at >= ?")
+                       (if (contains? args :worker-uuid)
+                         (if (nil? worker-uuid) " AND worker_uuid IS NULL "
+                                                " AND worker_uuid = ? "))
                        (if task " AND task = ? "
                          (if (contains? args :task) " AND task IS NULL "))
                        " ORDER BY at DESC LIMIT 250")
 
                       start-at
                       hive-uuid
+                      (if end-at end-at)
                       (if worker-uuid worker-uuid)
                       (if task task)
                       ])
