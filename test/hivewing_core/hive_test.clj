@@ -26,6 +26,17 @@
       (is (= (str uuid) (str (:uuid hive-result))))
       ))
 
+(deftest set-hive-name
+  (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
+        apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
+        hive-result    (hive-create {:apiary_uuid apiary-uuid})
+        hive-uuid      (:uuid hive-result)
+        hive-retrieval (hive-get hive-uuid)
+        start-name     (:name hive-retrieval)]
+      (is start-name)
+      (hive-set-name hive-uuid "THE_NEW_HIVE_NAME")
+      (is (= "THE_NEW_HIVE_NAME"  (:name (hive-get (:uuid hive-result)))))))
+
 (deftest create-a-hive
   (testing "create validly"
     (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))

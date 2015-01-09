@@ -55,7 +55,7 @@
 
   (let [clean-params (assoc parameters
                             :apiary_uuid (ensure-uuid apiary-uuid)
-                            :name (or hive-name (str "home of " (namer/gen-name) "s")))
+                            :name  (if (empty? hive-name) (str "home of " (namer/gen-name) "s") hive-name))
         uuid         (ensure-uuid uuid)
         clean-params (if uuid (assoc clean-params :uuid uuid) clean-params)
         result (first (jdbc/insert! sql-db :hives clean-params))
@@ -63,6 +63,12 @@
 
     (hin/hive-images-notification-send-hive-update-message hive-uuid)
     result))
+
+(defn hive-set-name
+  "Set the name on this hive"
+  [hive-uuid hive-name]
+  (jdbc/execute! sql-db ["UPDATE hives SET name = ? WHERE uuid = ?"
+                         hive-name (ensure-uuid hive-uuid)]))
 
 (defn hive-update-hive-image-url
   "Set this value on every worker in the given hive.

@@ -71,6 +71,7 @@
                             :apiary_uuid (ensure-uuid apiary-uuid)
                             :name  (if (empty? worker-name) (namer/gen-name) worker-name)
                             )]
+
     (let [res (first (jdbc/insert! sql-db :workers clean-params))
           uuid (:uuid res)]
       (hin/hive-images-notification-send-worker-update-message uuid)
@@ -95,7 +96,6 @@
 (defn worker-set-name
   "Set the name on this worker"
   [worker-uuid worker-name]
-  (println "Setting " worker-name)
   (jdbc/execute! sql-db ["UPDATE workers SET name = ? WHERE uuid = ?"
                          worker-name (ensure-uuid worker-uuid)]))
 
