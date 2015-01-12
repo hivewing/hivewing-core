@@ -1,2 +1,3 @@
 ALTER TABLE workers
-  DROP COLUMN last_seen;
+  ADD COLUMN last_seen timestamp with time zone,
+  ADD COLUMN connected boolean default false;

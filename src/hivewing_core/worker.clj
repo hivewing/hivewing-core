@@ -14,8 +14,21 @@
 (defn worker-fields-except
   [& except]
   (clj-string/join ", " (clj-set/difference
-    #{"name" "uuid" "created_at" "updated_at" "apiary_uuid" "hive_uuid" "access_token"}
+    #{"name" "uuid" "created_at" "updated_at" "apiary_uuid" "hive_uuid" "access_token" "last_seen" "connected"}
     (set except))))
+
+(defn worker-flag-seen!
+  "Flag that you've seen this worker"
+  [worker-uuid]
+    (jdbc/execute! sql-db ["UPDATE workers SET last_seen = NOW() WHERE uuid = ?" (ensure-uuid worker-uuid)]))
+
+(defn worker-connected!
+  [worker-uuid]
+  (jdbc/execute! sql-db ["UPDATE workers SET connected = true WHERE uuid = ?" (ensure-uuid worker-uuid)]))
+
+(defn worker-disconnected!
+  [worker-uuid]
+  (jdbc/execute! sql-db ["UPDATE workers SET connected = false WHERE uuid = ?" (ensure-uuid worker-uuid)]))
 
 (defn worker-list
   "Gets the list of worker uuids. It is paginated

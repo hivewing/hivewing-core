@@ -20,6 +20,18 @@
 (deftest find-a-worker-with-invalid-uuid
   (is (not (worker-get "123"))))
 
+(deftest set-last-seen
+  (let [{worker-uuid :worker-uuid } (create-worker)]
+    (is (not (:last_seen (worker-get worker-uuid))))
+    (println worker-uuid)
+    (worker-flag-seen! worker-uuid)
+    (is (:last_seen (worker-get worker-uuid)))
+    (worker-disconnected! worker-uuid)
+    (is (not (:connected (worker-get worker-uuid))))
+    (worker-connected! worker-uuid)
+    (is (:connected (worker-get worker-uuid)))
+    ))
+
 (deftest reset-a-worker-token
     (let [beekeeper-uuid (:uuid (beekeeper-create {:email "my_email@example.com"}))
           apiary-uuid    (:uuid (apiary-create {:beekeeper_uuid beekeeper-uuid}))
