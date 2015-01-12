@@ -19,7 +19,7 @@
   ([hive-uuid] (hive-data-get-keys hive-uuid nil))
   ([hive-uuid worker-uuid]
     (if (nil? worker-uuid)
-      (map :name (jdbc/query sql-db ["SELECT name FROM hivedata WHERE hive_uuid = ? AND worker_uuid IS NULL GROUP BY name" (ensure-uuid hive-uuid)])))
+      (map :name (jdbc/query sql-db ["SELECT name FROM hivedata WHERE hive_uuid = ? AND worker_uuid IS NULL GROUP BY name" (ensure-uuid hive-uuid)]))
       (map :name (jdbc/query sql-db ["SELECT name FROM hivedata WHERE hive_uuid = ? AND worker_uuid = ? GROUP BY name" (ensure-uuid hive-uuid) (ensure-uuid worker-uuid)])))))
 
 
