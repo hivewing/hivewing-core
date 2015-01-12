@@ -4,7 +4,6 @@
             [taoensso.timbre :as logger]
             [digest :as digest]
             [hivewing-core.core :refer [ensure-uuid]]
-            [environ.core  :refer [env]]
             [clojure.java.jdbc :as jdbc]))
 
 (defn hive-logs-purge-worker
