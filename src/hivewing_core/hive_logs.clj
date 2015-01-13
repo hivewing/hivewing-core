@@ -4,6 +4,8 @@
             [taoensso.timbre :as logger]
             [digest :as digest]
             [hivewing-core.core :refer [ensure-uuid]]
+            [clj-time.core :as ctime]
+            [clj-time.coerce :as ctimec]
             [clojure.java.jdbc :as jdbc]))
 
 (defn hive-logs-purge-worker
@@ -60,4 +62,8 @@
                                      :hive_uuid   (ensure-uuid hive-uuid)
                                      :task        task
                                      :message     message}]
-  (first (jdbc/insert! sql-db :hivelogs args))))
+    (let [res (first (jdbc/insert! sql-db :hivelogs args))
+         expiration-time (ctimec/to-sql-time (ctime/minus (ctime/now) (ctime/weeks 1)))]
+      (jdbc/delete! sql-db :hivelogs ["hive_uuid = ? AND at < ?" (ensure-uuid hive-uuid) expiration-time])
+      res
+      )))

@@ -16,6 +16,7 @@
                  [clojure-tools "1.1.2"]
                  [org.mindrot/jbcrypt "0.3m"]
                  [org.clojars.runa/conjure "2.1.3"]
+                 [clj-time "0.9.0"]
                  [commons-lang                                "2.5"]
                  [commons-io/commons-io                       "2.4"]
                  [commons-codec                               "1.7"]

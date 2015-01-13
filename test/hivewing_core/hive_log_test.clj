@@ -19,7 +19,7 @@
   (let [created (create-hive)
         hive-uuid (:hive-uuid created)]
     (hive-logs-push hive-uuid nil "task-name" "Log message")
-    (println (hive-logs-read hive-uuid))))
+    (hive-logs-read hive-uuid)))
 
 (deftest hive-logs-adding-some-logs-finding-by-task
   (let [created (create-worker)
