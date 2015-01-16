@@ -10,6 +10,10 @@
    :secret-key (env :hivewing-aws-secret-key)}
   )
 
+(def ses-aws-credentials
+  "The credentials to connect to SES"
+  (assoc aws-credentials :endpoint   (env :hivewing-sqs-endpoint)))
+
 (def sqs-aws-credentials
   (assoc aws-credentials :endpoint   (env :hivewing-sqs-endpoint)))
 

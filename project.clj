@@ -2,7 +2,7 @@
   :description "Internal 'min' layer for Hivewing"
   :url "http://core.hivewing.io"
   :dependencies [
-                 [org.clojure/clojure "1.6.0"]
+                 [org.clojure/clojure "1.7.0-alpha5"]
                  [environ "1.0.0"]
                  [org.clojure/java.jdbc "0.3.6"]
                  [postgresql "9.1-901.jdbc4"]
