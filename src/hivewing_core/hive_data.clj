@@ -1,9 +1,39 @@
 (ns hivewing-core.hive-data
-  (:require [hivewing-core.configuration :refer [sql-db]]
+  (:require [hivewing-core.configuration :as config :refer [sql-db]]
             [taoensso.timbre :as logger]
             [hivewing-core.core :refer [ensure-uuid]]
             [clojure.java.jdbc :as jdbc]
-            ))
+            [amazonica.aws.sqs :as sqs]
+            [environ.core  :refer [env]]))
+
+(defn hive-data-sqs-queue
+  "In dev mode we piggy back on SQS instead of kinesis"
+  []
+  (let [queue-name (or (env :hivewing-sqs-hive-data-queue ) "hive-kinesis-queue")
+         queue (sqs/find-queue config/sqs-aws-credentials queue-name)]
+        (if queue
+          queue
+          (:queue-url (sqs/create-queue
+              config/sqs-aws-credentials
+              :queue-name queue-name
+              :attributes
+                {:VisibilityTimeout 30 ; sec
+                 :MaximumMessageSize 2048 ; bytes
+                 :MessageRetentionPeriod 3600 ; sec
+                 :ReceiveMessageWaitTimeSeconds 0})) ; sec
+          )))
+
+(defn hive-data-push-to-processing
+  [hive-uuid worker-uuid data-name data-value at]
+  (logger/info "Push to processing:" hive-uuid worker-uuid data-name data-value)
+  (sqs/send-message config/sqs-aws-credentials
+                    (hive-data-sqs-queue)
+                    (prn-str {:hive-uuid (str hive-uuid)
+                              :worker-uuid (str worker-uuid)
+                              :data-name (str data-name)
+                              :data-value data-value
+                              :at (.getTime at)})))
+
 (def hive-data-keep-count
   "The number of data records to keep for each data value"
   25)
@@ -50,11 +80,16 @@
         sql-str (str "ctid IN ( " inner-sql ")")
         ]
 
-    (jdbc/insert! sql-db :hivedata args)
-    (jdbc/delete! sql-db :hivedata
-                    (filter identity [sql-str
-                     (:hive_uuid args)
-                     (if (:worker_uuid args) (:worker_uuid args))]))))
+    (let [res (jdbc/insert! sql-db :hivedata args)]
+      (hive-data-push-to-processing (:hive_uuid args)
+                                    (:worker_uuid args)
+                                    data-name
+                                    data-value
+                                    (:at res))
+      (jdbc/delete! sql-db :hivedata
+                      (filter identity [sql-str
+                       (:hive_uuid args)
+                       (if (:worker_uuid args) (:worker_uuid args))])))))
 
 (defn hive-data-read
   "Read hive data.

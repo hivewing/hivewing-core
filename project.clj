@@ -14,6 +14,7 @@
                  [biscuit "1.0.0"]
                  [clj-jgit "0.8.2"]
                  [clojure-tools "1.1.2"]
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.mindrot/jbcrypt "0.3m"]
                  [org.clojars.runa/conjure "2.1.3"]
                  [clj-time "0.9.0"]
