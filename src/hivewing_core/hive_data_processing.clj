@@ -55,12 +55,6 @@
          (step r x)
          )))))
 
-(defn load-pipeline-description
-  "Loads the pipeline description from the DB.
-  If there is none for this data, we just return []"
-  [hive-uuid]
-  (hds/hive-data-stages-index hive-uuid))
-
 (defn drink-the-firehose!
   "Processing function returns a single channel
   data is a channel containing lots of messages , native clojure hash-maps
