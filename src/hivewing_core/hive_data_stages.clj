@@ -2,7 +2,53 @@
   (:require
             [taoensso.timbre :as logger]
             [clj-time.core :as ctime]
-            ))
+            [hivewing-core.hive-data-stages :as hds]
+            [hivewing-core.core :refer [ensure-uuid]]
+            [hivewing-core.postgres-json :as pgjson]
+            [hivewing-core.configuration :refer [sql-db]]
+            [clojure.java.jdbc :as jdbc]))
+
+(defn hive-data-stages-notify-changes
+  "When the hive data stages changed, we emit a :restart to the hive's
+  data pipeline."
+  [hive-uuid]
+  (logger/info "TODO - emit the restart token into the stream" hive-uuid))
+
+(defn hive-data-stages-index
+  [hive-uuid]
+
+  (try
+    (map
+      #(assoc (:params %) :type (:stage_type %))
+      (jdbc/query sql-db ["SELECT * FROM hive_data_processing_stages WHERE hive_uuid = ?" (ensure-uuid hive-uuid)]))
+    (catch clojure.lang.ExceptionInfo e false)))
+
+(defn hive-data-stages-create
+  [hive-uuid stage-type & params-arr]
+  (let [params (apply hash-map params-arr)
+        stage-type (keyword stage-type)
+        spec   (:spec (get (hds/stages) stage-type))]
+  ;; Validate arguments
+  (logger/info "TODO - be more careful about cleaning parameters!")
+
+  ;; Create DB record
+  (let [clean-params {:stage_type (str stage-type)
+                      :hive_uuid (ensure-uuid hive-uuid)
+                      :params params}
+        result (first (jdbc/insert! sql-db :hive_data_processing_stages clean-params))
+        ]
+    (hive-data-stages-notify-changes hive-uuid)
+    result
+    )))
+
+(defn hive-data-stages-delete
+  "Delete a given hive-data-stage from the hive processing!"
+  [stage-uuid]
+  (let [hive-uuid (:hive_uuid (first (jdbc/query sql-db ["SELECT hive_uuid FROM hive_data_processing_stages WHERE uuid = ?"
+                                                  (ensure-uuid stage-uuid)])))
+        res (jdbc/delete! sql-db :hive_data_processing_stages ["uuid = ?" (ensure-uuid stage-uuid)])]
+    (hive-data-stages-notify-changes hive-uuid)
+    res))
 
 (defn parse-number
   "Reads a number from a string. Returns nil if not a number."

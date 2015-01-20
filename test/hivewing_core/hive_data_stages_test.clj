@@ -10,6 +10,21 @@
 (deftest get-stages
   (is (stages)))
 
+(deftest reading-saving-data-processing-stages
+  (testing "create the stage"
+    (let [{hive-uuid :hive-uuid
+           worker-uuid :worker-uuid
+           :as create-res} (create-worker)
+          stage (hive-data-stages-create hive-uuid
+                                         :log
+                                         :in {:worker "data"}
+                                         :count-rate 1)]
+      (= (count (hive-data-stages-index hive-uuid)) 1)
+      (hive-data-stages-delete (:uuid stage))
+      (= (count (hive-data-stages-index hive-uuid)) 0)
+    ))
+)
+
 (deftest average-stage-test
   (testing "that worker -> hive works"
     (let [stage ((:factory (get (stages) :average)) {:in {:worker "test"}

@@ -59,13 +59,7 @@
   "Loads the pipeline description from the DB.
   If there is none for this data, we just return []"
   [hive-uuid]
-        [
-         {:type :log :count-rate 1
-          :in {:each-worker "data"}}
-         {:type :log :count-rate 1
-          :in {:hive "hive-data"}}
-         ]
-        )
+  (hds/hive-data-stages-index hive-uuid))
 
 (defn drink-the-firehose!
   "Processing function returns a single channel
@@ -79,21 +73,25 @@
   (let [channel (async/chan 1000)
         incoming-queue (hd/hive-data-sqs-queue)
         results (future (loop []
-                          (let [msgs (:messages (sqs/receive-message config/sqs-aws-credentials
-                                                 :queue-url incoming-queue
-                                                 :wait-time-seconds 1
-                                                 :max-number-of-messages 1
-                                                 :delete false))]
-                            (if (empty? msgs)
-                              (Thread/sleep 500)
-                              (doseq [packed-msg msgs]
-                                ; Unpack it - it's just prn-str for now.
-                                (let [msg (read-string (:body packed-msg))]
-                                  ; Process
-                                  (async/put! channel msg)
-                                  ; Delete
-                                  (sqs/delete-message config/sqs-aws-credentials incoming-queue (:receipt-handle packed-msg))
-                                  ))))
+                          (try
+                            (let [msgs (:messages (sqs/receive-message
+                                                    config/sqs-aws-credentials
+                                                   :queue-url incoming-queue
+                                                   :wait-time-seconds 1
+                                                   :max-number-of-messages 10
+                                                   :delete true))]
+                              (if (empty? msgs)
+                                (do
+                                  (logger/info "No messages to retrieve" incoming-queue)
+                                  (Thread/sleep 5000))
+                                (doseq [packed-msg msgs]
+                                  ; Unpack it - it's just prn-str for now.
+                                  (let [msg (read-string (:body packed-msg))]
+                                    (logger/info "Putting msg onto channel" channel msg)
+                                    ; Process
+                                    (async/put! channel msg)
+                                    ))))
+                            (catch Exception e (logger/error "Error" e)))
                           (recur)))
         ]
     channel))

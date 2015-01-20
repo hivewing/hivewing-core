@@ -8,6 +8,8 @@
 
 (use-fixtures :each clean-database)
 
+
+
 (deftest test-get-firehose
   (let [channel (drink-the-firehose!)]
     (is channel)

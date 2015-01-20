@@ -20,7 +20,7 @@
   (ensure-hive-image-bucket :delete_first)
   (redis (car/flushall))
 
-  (jdbc/execute! sql-db ["TRUNCATE TABLE beekeepers, apiaries, hive_managers, hives, workers, public_keys, hivelogs, worker_configs, hivedata"])
+  (jdbc/execute! sql-db ["TRUNCATE TABLE beekeepers, apiaries, hive_managers, hives, workers, public_keys, hivelogs, worker_configs, hivedata, hive_data_processing_stages"])
 
   (test-function)
   )
