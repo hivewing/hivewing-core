@@ -13,6 +13,9 @@
     (is channel)
 
     (hive-data-push-to-processing "h" "w" "data" 1 (java.util.Date.))
+    (hive-data-push-to-processing "h" nil "hive-data" 1 (java.util.Date.))
+    (hive-data-push-to-processing "h" "w2" "data" 1 (java.util.Date.))
+
     (async/take! channel
       (fn [msg]
         (is (= (:worker-uuid msg) "w"))

@@ -7,10 +7,21 @@
             [hivewing-core.hive-data-stages :as hds]
             [clojure.core.async :as async]))
 
+(comment
+  (create-msg-filter (first (load-pipeline-description "1")))
+  )
+
 (defn create-msg-filter [ stage-def ]
-  (let [[worker-uuid data-name] (:in stage-def)]
+  (let [worker-selector (first (keys (:in stage-def)))
+        data-name       (first (vals (:in stage-def)))]
     (fn [x]
-      (and (= (:worker-uuid x) worker-uuid)
+      (and (or
+             ;; If it's ANY worker, it should
+             ;;   allow it through if it has a worker
+             (and (= :worker worker-selector)
+                  (not (nil? (:worker-uuid x))))
+             ;; If it's a hive-data, it needs a nil worker-uuid
+             (and (= :hive worker-selector) (nil? (:worker-uuid x))))
            (= (:data-name x) data-name)))))
 
 (defn create-pipeline-stage
@@ -23,7 +34,9 @@
         transform  ((:factory safe-stage) stage-def)
         ]
     (fn [x]
-      (if (msg-filter x) (transform x)))))
+      (if (msg-filter x)
+        (do
+          (transform x))))))
 
 (defn create-processing-pipeline
   "A pipeline is a single transducer
@@ -46,7 +59,13 @@
   "Loads the pipeline description from the DB.
   If there is none for this data, we just return []"
   [hive-uuid]
-        [{:type :log :count-rate 10}])
+        [
+         {:type :log :count-rate 1
+          :in {:each-worker "data"}}
+         {:type :log :count-rate 1
+          :in {:hive "hive-data"}}
+         ]
+        )
 
 (defn drink-the-firehose!
   "Processing function returns a single channel
@@ -63,18 +82,18 @@
                           (let [msgs (:messages (sqs/receive-message config/sqs-aws-credentials
                                                  :queue-url incoming-queue
                                                  :wait-time-seconds 1
-                                                 :max-number-of-messages 10
+                                                 :max-number-of-messages 1
                                                  :delete false))]
                             (if (empty? msgs)
-                              (Thread/sleep 100)
+                              (Thread/sleep 500)
                               (doseq [packed-msg msgs]
                                 ; Unpack it - it's just prn-str for now.
                                 (let [msg (read-string (:body packed-msg))]
                                   ; Process
                                   (async/put! channel msg)
-                                  (println "put to channel" channel "put msg" msg)
                                   ; Delete
                                   (sqs/delete-message config/sqs-aws-credentials incoming-queue (:receipt-handle packed-msg))
-                                  ))))))
+                                  ))))
+                          (recur)))
         ]
     channel))

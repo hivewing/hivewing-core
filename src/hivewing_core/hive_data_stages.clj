@@ -4,6 +4,14 @@
             [clj-time.core :as ctime]
             ))
 
+(defn parse-number
+  "Reads a number from a string. Returns nil if not a number."
+  [s]
+  (if (number? s)
+    s
+    (if (re-find #"^-?\d+\.?\d*$" s)
+      (read-string s))))
+
 (def message-format {
   :hive-uuid   "(always present)"
   :worker-uuid "(may be present / not)"
@@ -12,28 +20,180 @@
   :at          "epoch ts or something"
   })
 
-(defn parse-number
-  "Reads a number from a string. Returns nil if not a number."
-  [s]
-  (if (re-find #"^-?\d+\.?\d*$" s)
-    (read-string s)))
+(defn get-push-worker-uuid
+  [stage-def msg]
+  (let [
+        in-worker-selector (first (keys (:in stage-def)))
+        in-data-name       (first (vals (:in stage-def)))
+        out-worker-selector (first (keys (:out stage-def)))
+        ]
 
-(defn log-step
+    (case out-worker-selector
+      :worker (str (:worker-uuid msg))
+      :hive nil)))
+
+(defn get-push-data-name
+  [stage-def]
+  (first (vals (:out stage-def))))
+
+(defn get-stream-id
+  [stage-def msg]
+  ;;
+  ;; Cases:
+  ;;    :worker => :worker EASY
+  ;;    :worker => :hive   COMBINING
+  ;;    :hive   => :hive   EASY
+  ;;
+
+  (let [
+        in-worker-selector (first (keys (:in stage-def)))
+        in-data-name       (first (vals (:in stage-def)))
+        out-worker-selector (first (keys (:out stage-def)))
+        ]
+    (case in-worker-selector
+      :worker
+        (if (= :hive out-worker-selector)
+          (str "all-workers:" in-data-name)
+          (str (:worker-uuid msg) ":" in-data-name))
+      :hive (str "hive:" in-data-name))))
+
+(defn compare-values
+  [test-func data-value baseline-value]
+  ;; Compare as numbers if both parse as numbers
+    (let [data-value-i (parse-number data-value)
+          baseline-i   (parse-number baseline-value)
+          test-func (case test-func
+                :gt  >
+                :gte >=
+                :lt  <
+                :lte <=
+                :eq  =
+                "default" =)]
+      (if (and data-value-i baseline-i)
+          (test-func data-value-i baseline-i)
+          (test-func 0 (compare data-value baseline-value)))))
+
+(defn push-post-alert
+  "Push an alert - to the system.
+  Can usually be an email of POST hook"
+  [url hive-uuid worker-uuid data-name data-value baseline test-func]
+  (logger/info "TODO POST ALERT:" hive-uuid worker-uuid data-name data-value baseline test-func))
+
+(defn push-email-alert
+  "Push an alert - to the system.
+  Can usually be an email of POST hook"
+  [email-addr hive-uuid worker-uuid data-name data-value baseline test-func]
+  (logger/info "TODO EMAIL ALERT:" hive-uuid worker-uuid data-name data-value baseline test-func))
+
+(defn push-data
+  "Push the message out (back into Kinesis really)
+  But also through the SQL database, so you can read it
+  from the API"
+  [hive-uuid worker-uuid data-name data-value]
+    (logger/info "TODO Sending this out: " hive-uuid worker-uuid data-name data-value))
+
+
+(defn alert-email-stage
+  ([] {:in         :data-stream
+       :type       :alert-email
+       :email      [:email   "The email that the hook will hit"]
+       :value      [:string "The value we are testing against"]
+       :test       [[:gt :gte :lt :lte :eq] "The comparator"]
+       })
+  ([stage-def]
+    (let [baseline-value (:value stage-def)
+          email          (:email stage-def)]
+
+      (fn [x]
+        (if (compare-values (:test stage-def) (:data-value x) baseline-value)
+          (push-email-alert email
+                             (:hive-uuid x)
+                             (:worker-uuid x)
+                             (:data-name x)
+                             (:data-value x)
+                             baseline-value
+                             (:test stage-def)))))))
+(defn alert-post-stage
+  ([] {:in         :data-stream
+       :type       :alert-post
+       :url        [:url   "The URL that the POST hook will hit"]
+       :value      [:string "The value we are testing against"]
+       :test       [[:gt :gte :lt :lte :eq] "The comparator"]
+       })
+  ([stage-def]
+    (let [baseline-value (:value stage-def)
+          url             (:url stage-def)]
+      (fn [x]
+        (if (compare-values (:test stage-def) (:data-value x) baseline-value)
+            (push-post-alert url
+                             (:hive-uuid x)
+                             (:worker-uuid x)
+                             (:data-name x)
+                             (:data-value x)
+                             baseline-value
+                             (:test stage-def)))))))
+
+(defn average-stage
+  ([] {:in         :data-stream
+       :type       :average
+       :out        [:data-stream "Name of the output field the average should go to"]
+       :window     [:integer "How long to wait between averages (in ms)"]
+       })
+  ([stage-def]
+    (let [start-state      {:sum 0 :cnt 0 :avg 0}
+          window           (or (:window stage-def) 5000)
+          output-target    (:out stage-def)
+          ;; Average needs to hold values for ALL the inputs
+          state            (atom {})
+          last-calculation (atom {})
+          ]
+      (fn [x]
+        (let [incr-val (or (parse-number (:data-value x)) 0)
+              now (.getTime (java.util.Date.))
+              stream-id  (get-stream-id stage-def x)
+              stream-timer (get (swap! last-calculation (fn [curr]
+                                                        (if (get curr stream-id)
+                                                         curr
+                                                         (assoc curr stream-id (.getTime (java.util.Date.)))))) stream-id)
+              wait-until (+ stream-timer window)
+              new-state (get (swap! state (fn [current]
+
+                          (let [stream (or
+                                         (get current stream-id)
+                                         start-state)
+                                sum (+ incr-val (:sum stream))
+                                cnt (+ (:cnt stream) 1)
+                                avg (/ (+ incr-val (* (:avg stream) (:cnt stream)))
+                                       (+ 1 (:cnt stream)))]
+                            (assoc current stream-id {:sum sum
+                                                      :cnt cnt
+                                                      :avg avg})))) stream-id)
+            new-avg (:avg new-state)]
+
+          (if (>= now wait-until)
+            (do
+              (push-data (:hive-uuid x)
+                         (get-push-worker-uuid stage-def x)
+                         (get-push-data-name stage-def)
+                         new-avg)
+              (swap! state assoc stream-id start-state))))))))
+
+(defn log-stage
   ([] {:in         :data-stream
        :type       :log
        :visiblity  :hidden
        :count-rate [:integer "How often you should emit that you have recvd messages"]
        })
-  ([step-def]
-    (let [step-count (or (:count-rate step-def) 5)
+  ([stage-def]
+    (let [stage-count (or (:count-rate stage-def) 1)
           cnt (atom 0)
           ]
       (fn [x]
         (swap! cnt inc)
-        (if (= 0 (mod @cnt step-count))
+        (if (= 0 (mod @cnt stage-count))
           (logger/info "processed" @cnt "since startup"))))))
 
-(defn missing-stage-step
+(defn missing-stage-stage
   "This stage is a fallback - if something went wrong and
   a specified stage was requested, but is invalid.
   This is the stage which emits data.
@@ -42,11 +202,11 @@
        :type       :missing-stage
        :visiblity  :hidden
        })
-  ([step-def]
+  ([stage-def]
     (fn [x]
-      (logger/info "Error! This is a missing stage" step-def))))
+      (logger/info "Error! This is a missing stage" stage-def))))
 
-(defn dump-s3-step
+(defn dump-s3-stage
   "Collects and then dumps out the data to the sink.
   :size is 10000 by default
   :window is the max time between dumps
@@ -59,12 +219,12 @@
        :size       [:integer "How many records to buffer before a write. Default is 10000"]
        :window     [:integer "How long to wait between writes (in ms)"]
        })
-  ([step-def]
+  ([stage-def]
     (let [data             (atom [])
           last-dump        (atom (.getTime (java.util.Date.)))
-          window           (or (:window step-def) 5000)
-          size             (or (:size step-def)   10000)
-          output-target    (:out step-def)]
+          window           (or (:window stage-def) 5000)
+          size             (or (:size stage-def)   10000)
+          output-target    (:out stage-def)]
       (fn [x]
         (let [now (.getTime (java.util.Date.))
               wait-until (+ @last-dump window)]
@@ -76,11 +236,11 @@
                 (let [{hive-uuid :hive-uuid
                        worker-uuid :worker-uuid
                        failing-value :data-value} @data]
-                  (logger/info "TODO DUMP TO S3" hive-uuid worker-uuid step-def @data))
+                  (logger/info "TODO DUMP TO S3" hive-uuid worker-uuid stage-def @data))
                 (reset! data [])
                 (reset! last-dump (.getTime (java.util.Date.))))))))))
 
-(defn dump-post-step
+(defn dump-post-stage
   "Collects and then dumps out the data to the sink.
   :size is 10000 by default
   :window is the max time between dumps
@@ -92,12 +252,12 @@
        :size       [:integer "How many records to buffer before a write. Default is 10000"]
        :window     [:integer "How long to wait between writes (in ms)"]
        })
-  ([step-def]
+  ([stage-def]
     (let [data             (atom [])
           last-dump        (atom (.getTime (java.util.Date.)))
-          window           (or (:window step-def) 5000)
-          size             (or (:size step-def)   10000)
-          output-target    (:out step-def)]
+          window           (or (:window stage-def) 5000)
+          size             (or (:size stage-def)   10000)
+          output-target    (:out stage-def)]
       (fn [x]
         (let [now (.getTime (java.util.Date.))
               wait-until (+ @last-dump window)]
@@ -109,96 +269,9 @@
                 (let [{hive-uuid :hive-uuid
                        worker-uuid :worker-uuid
                        failing-value :data-value} @data]
-                  (logger/info "TODO DUMP TO POST" hive-uuid worker-uuid step-def @data))
+                  (logger/info "TODO DUMP TO POST" hive-uuid worker-uuid stage-def @data))
                 (reset! data [])
                 (reset! last-dump (.getTime (java.util.Date.))))))))))
-
-
-(defn push-alert
-  "Push an alert - to the system.
-  Can usually be an email of POST hook
-  "
-  [step-def msg-in]
-  (let [{hive-uuid :hive-uuid
-         worker-uuid :worker-uuid
-         failing-value :data-value} msg-in]
-    (logger/info "TODO ALERT:" hive-uuid worker-uuid step-def failing-value)))
-
-(defn push-data
-  "Push the message out (back into Kinesis really)
-  But also through the SQL database, so you can read it
-  from the API"
-  [msg-in new-data output-target]
-  (let [{hive-uuid :hive-uuid
-         worker-uuid :worker-uuid} msg-in]
-    (logger/info "TODO Sending this out: " hive-uuid worker-uuid output-target new-data)))
-
-(defn averager [step-def]
-  "Averages over a window of time.
-  Would like to be a better sum of squares algorithm, but I can't find it. Boo.
-  Needs :out, :in and :window"
-
-  (let [start-state      {:sum 0 :cnt 0 :avg 0}
-        window           (or (:window step-def) 5000)
-        output-target    (:out step-def)
-        state            (atom start-state)
-        last-calculation (atom (.getTime (java.util.Date.)))
-        ]
-    (fn [x]
-
-      (let [incr-val (or (parse-number (:data-value x)) 0)
-            now (.getTime (java.util.Date.))
-            wait-until (+ @last-calculation window)
-            new-state (swap! state (fn [current]
-                          (let [sum (+ incr-val (:sum current))
-                                cnt (+ (:cnt current) 1)
-                                avg (/ (+ incr-val (* (:avg current) (:cnt current)))
-                                       (+ 1 (:cnt current)))]
-                            (println "avg now" avg sum cnt)
-                              {:sum sum
-                               :cnt cnt
-                               :avg avg})))
-            new-avg (:avg new-state)
-          ]
-          (if (> now wait-until)
-            (do
-              (push-data x new-avg output-target)
-              (reset! state {:sum new-avg :cnt 1 :avg new-avg})))))))
-
-(defn summer
-  "Sums up the sequence of values over time"
-  [step-def]
-  (let [sum (atom 0)
-        last-calculation (atom (.getTime (java.util.Date.)))
-        window    (or (:window step-def) 5000)
-        output-target (:out step-def)]
-    (fn [x]
-      (let [incr-val (or (parse-number (:data-value x)) 0)]
-        (swap! sum + incr-val)
-        (let [now (.getTime (java.util.Date.))
-              wait-until (+ @last-calculation window)]
-          (if (> now wait-until)
-            (do
-              (push-data x @sum output-target)
-              (reset! sum 0))))))))
-
-(defn alerter [step-def]
-  "Alerts when it sees a value tested differently than the baseline.
-    :test is [:gt, :gte, :lt, :lte, :eq (default)]
-    :value is the value to test against
-    The definition goes to push-alert if there was an alert.
-    For notification options, look there"
-  (let [baseline-value (:value step-def)
-        test-func (case (:test step-def)
-                    :gt  >
-                    :gte >=
-                    :lt  <
-                    :lte <=
-                    "default" =)]
-    (fn [x]
-      (let [data-value (:data-value x)]
-        (if (test-func (or (parse-number data-value) data-value) baseline-value)
-          (push-alert step-def x))))))
 
 (defn stages
   "Returns all the descriptions of each of the stages that
@@ -207,8 +280,11 @@
   (into {} (map #(let [spec (%)]
                        [(:type spec) {:factory %
                                       :spec spec}])
-                       ) [ log-step
-                           dump-s3-step
-                           dump-post-step
-                           missing-stage-step
+                       ) [ log-stage
+                           dump-s3-stage
+                           dump-post-stage
+                           missing-stage-stage
+                           average-stage
+                           alert-email-stage
+                           alert-post-stage
                           ]))

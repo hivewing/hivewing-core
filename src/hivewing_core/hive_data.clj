@@ -25,14 +25,17 @@
 
 (defn hive-data-push-to-processing
   [hive-uuid worker-uuid data-name data-value at]
-  (logger/info "Push to processing:" hive-uuid worker-uuid data-name data-value)
+  (logger/info "Push to processing:" hive-uuid worker-uuid data-name data-value at)
+  (try
   (sqs/send-message config/sqs-aws-credentials
                     (hive-data-sqs-queue)
                     (prn-str {:hive-uuid (str hive-uuid)
                               :worker-uuid (str worker-uuid)
                               :data-name (str data-name)
                               :data-value data-value
-                              :at (.getTime at)})))
+                              :at (.getTime at)}))
+  (catch Exception e (println e)))
+  )
 
 (def hive-data-keep-count
   "The number of data records to keep for each data value"
@@ -80,7 +83,7 @@
         sql-str (str "ctid IN ( " inner-sql ")")
         ]
 
-    (let [res (jdbc/insert! sql-db :hivedata args)]
+    (let [res (first (jdbc/insert! sql-db :hivedata args))]
       (hive-data-push-to-processing (:hive_uuid args)
                                     (:worker_uuid args)
                                     data-name
