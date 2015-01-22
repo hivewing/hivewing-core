@@ -2,6 +2,7 @@
   (:require [clojure.test :refer :all]
             [hivewing-core.helpers :refer :all]
             [conjure.core :as conjure]
+            [hivewing-core.hive-data :refer :all]
             [hivewing-core.hive-data-stages :refer :all])
   )
 
@@ -12,18 +13,23 @@
 
 (deftest reading-saving-data-processing-stages
   (testing "create the stage"
-    (let [{hive-uuid :hive-uuid
-           worker-uuid :worker-uuid
-           :as create-res} (create-worker)
-          stage (hive-data-stages-create hive-uuid
-                                         :log
-                                         :in {:worker "data"}
-                                         :count-rate 1)]
-      (= (count (hive-data-stages-index hive-uuid)) 1)
-      (hive-data-stages-delete (:uuid stage))
-      (= (count (hive-data-stages-index hive-uuid)) 0)
-    ))
-)
+    (conjure/mocking [hive-data-push-restart-hive-processing]
+      (conjure/verify-call-times-for hive-data-push-restart-hive-processing 0)
+      (let [{hive-uuid :hive-uuid
+             worker-uuid :worker-uuid
+             :as create-res} (create-worker)
+            stage (hive-data-stages-create hive-uuid
+                                           :log
+                                           :in {:worker "data"}
+                                           :count-rate 1)]
+        (conjure/verify-call-times-for hive-data-push-restart-hive-processing 1)
+        (= (count (hive-data-stages-index hive-uuid)) 1)
+        (conjure/verify-call-times-for hive-data-push-restart-hive-processing 1)
+        (hive-data-stages-delete (:uuid stage))
+        (conjure/verify-call-times-for hive-data-push-restart-hive-processing 2)
+        (= (count (hive-data-stages-index hive-uuid)) 0)
+        (conjure/verify-call-times-for hive-data-push-restart-hive-processing 2)
+      ))))
 
 (deftest average-stage-test
   (testing "that worker -> hive works"

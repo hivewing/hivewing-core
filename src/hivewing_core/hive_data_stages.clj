@@ -4,6 +4,7 @@
             [clj-time.core :as ctime]
             [hivewing-core.core :refer [ensure-uuid]]
             [hivewing-core.postgres-json :as pgjson]
+            [hivewing-core.hive-data :as hd]
             [hivewing-core.configuration :refer [sql-db]]
             [clojure.java.jdbc :as jdbc]))
 
@@ -358,12 +359,6 @@
                     all-stages)))
     (catch Exception e (logger/error "Error: " e))))
 
-(defn hive-data-stages-notify-changes
-  "When the hive data stages changed, we emit a :restart to the hive's
-  data pipeline."
-  [hive-uuid]
-  (logger/info "TODO - emit the restart token into the stream" hive-uuid))
-
 (defn hive-data-stages-index
   [hive-uuid]
 
@@ -392,7 +387,7 @@
                       :params params}
         result (first (jdbc/insert! sql-db :hive_data_processing_stages clean-params))
         ]
-    (hive-data-stages-notify-changes hive-uuid)
+    (hd/hive-data-push-restart-hive-processing hive-uuid)
     result
     )))
 
@@ -402,5 +397,5 @@
   (let [hive-uuid (:hive_uuid (first (jdbc/query sql-db ["SELECT hive_uuid FROM hive_data_processing_stages WHERE uuid = ?"
                                                   (ensure-uuid stage-uuid)])))
         res (jdbc/delete! sql-db :hive_data_processing_stages ["uuid = ?" (ensure-uuid stage-uuid)])]
-    (hive-data-stages-notify-changes hive-uuid)
+    (hd/hive-data-push-restart-hive-processing hive-uuid)
     res))

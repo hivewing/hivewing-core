@@ -23,6 +23,16 @@
                  :ReceiveMessageWaitTimeSeconds 0})) ; sec
           )))
 
+(defn hive-data-push-restart-hive-processing
+  "Push a message which indicates to restart hive processing"
+  [hive-uuid]
+  (try
+    (sqs/send-message config/sqs-aws-credentials
+                    (hive-data-sqs-queue)
+                    (prn-str {:hive-uuid (str hive-uuid)
+                              :restart   true}))
+  (catch Exception e (println e))))
+
 (defn hive-data-push-to-processing
   [hive-uuid worker-uuid data-name data-value at]
   (logger/info "Push to processing:" hive-uuid worker-uuid data-name data-value at)
