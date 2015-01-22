@@ -371,6 +371,13 @@
     (jdbc/query sql-db ["SELECT * FROM hive_data_processing_stages WHERE hive_uuid = ?" (ensure-uuid hive-uuid)])
     (catch clojure.lang.ExceptionInfo e false)))
 
+(defn hive-data-stages-get
+  [hive-uuid stage-uuid]
+
+  (try
+    (first (jdbc/query sql-db ["SELECT * FROM hive_data_processing_stages WHERE hive_uuid = ? AND uuid = ? LIMIT 1" (ensure-uuid hive-uuid) (ensure-uuid stage-uuid)]))
+    (catch clojure.lang.ExceptionInfo e false)))
+
 (defn hive-data-stages-create
   [hive-uuid stage-type & params-arr]
   (let [params (apply hash-map params-arr)
