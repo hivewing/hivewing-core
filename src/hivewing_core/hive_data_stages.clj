@@ -103,7 +103,7 @@
          :in         [:data-stream "The data records to test for the alert"]
          :email      [:email   "The email that the hook will hit"]
          :value      [:string "The value we are testing against"]
-         :test       [[:gt :gte :lt :lte :eq] "The comparator"]
+         :test       [:enum  "The comparator" [:gt :gte :lt :lte :eq]]
          }})
   ([stage-def]
     (let [baseline-value (:value stage-def)
@@ -125,7 +125,7 @@
          :in         [:data-stream "The data records to test for the alert"]
          :url        [:url   "The URL that the POST hook will hit"]
          :value      [:string "The value we are testing against"]
-         :test       [[:gt :gte :lt :lte :eq] "The comparator"]
+         :test       [:enum  "The comparator" [:gt :gte :lt :lte :eq]]
          }})
   ([stage-def]
     (let [baseline-value (:value stage-def)
@@ -368,9 +368,7 @@
   [hive-uuid]
 
   (try
-    (map
-      #(assoc (:params %) :type (:stage_type %))
-      (jdbc/query sql-db ["SELECT * FROM hive_data_processing_stages WHERE hive_uuid = ?" (ensure-uuid hive-uuid)]))
+    (jdbc/query sql-db ["SELECT * FROM hive_data_processing_stages WHERE hive_uuid = ?" (ensure-uuid hive-uuid)])
     (catch clojure.lang.ExceptionInfo e false)))
 
 (defn hive-data-stages-create
