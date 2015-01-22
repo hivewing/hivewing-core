@@ -43,6 +43,8 @@
   Which does fanning / filtering / etc. as described by the description
   "
   [pipeline-description]
+  (logger/info "Creating pipeline from description"
+               pipeline-description)
   (let [pipeline-stages (map create-pipeline-stage pipeline-description)]
     (fn [step]
       (fn

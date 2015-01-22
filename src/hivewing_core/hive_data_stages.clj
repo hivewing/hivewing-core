@@ -364,7 +364,7 @@
 
   (try
     (jdbc/query sql-db ["SELECT * FROM hive_data_processing_stages WHERE hive_uuid = ?" (ensure-uuid hive-uuid)])
-    (catch clojure.lang.ExceptionInfo e false)))
+    (catch clojure.lang.ExceptionInfo e [])))
 
 (defn hive-data-stages-get
   [hive-uuid stage-uuid]
