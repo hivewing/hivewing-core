@@ -28,7 +28,7 @@
   "Create a pipeline stage based upon the passed in stage-definition"
   [ stage-def ]
   (let [msg-filter (create-msg-filter stage-def)
-        stages     (hds/stages)
+        stages     (hds/hive-data-stages-specs)
         selected-stage (get stages (:type stage-def))
         safe-stage (or selected-stage (get stages :missing-stage))
         transform  ((:factory safe-stage) stage-def)

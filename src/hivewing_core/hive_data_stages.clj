@@ -97,12 +97,14 @@
 
 
 (defn alert-email-stage
-  ([] {:in         :data-stream
-       :type       :alert-email
-       :email      [:email   "The email that the hook will hit"]
-       :value      [:string "The value we are testing against"]
-       :test       [[:gt :gte :lt :lte :eq] "The comparator"]
-       })
+  ([] {:type       :alert-email
+       :description "Send an email to an address when a test condition is triggered by a data record"
+       :params {
+         :in         [:data-stream "The data records to test for the alert"]
+         :email      [:email   "The email that the hook will hit"]
+         :value      [:string "The value we are testing against"]
+         :test       [[:gt :gte :lt :lte :eq] "The comparator"]
+         }})
   ([stage-def]
     (let [baseline-value (:value stage-def)
           email          (:email stage-def)]
@@ -117,12 +119,14 @@
                              baseline-value
                              (:test stage-def)))))))
 (defn alert-post-stage
-  ([] {:in         :data-stream
-       :type       :alert-post
-       :url        [:url   "The URL that the POST hook will hit"]
-       :value      [:string "The value we are testing against"]
-       :test       [[:gt :gte :lt :lte :eq] "The comparator"]
-       })
+  ([] {:type       :alert-post
+       :description "POST to an url when a test condition is triggered by a data record"
+       :params {
+         :in         [:data-stream "The data records to test for the alert"]
+         :url        [:url   "The URL that the POST hook will hit"]
+         :value      [:string "The value we are testing against"]
+         :test       [[:gt :gte :lt :lte :eq] "The comparator"]
+         }})
   ([stage-def]
     (let [baseline-value (:value stage-def)
           url             (:url stage-def)]
@@ -136,12 +140,59 @@
                              baseline-value
                              (:test stage-def)))))))
 
+(defn changed-email-stage
+  ([] {:description "Send an email to an address when the values in the data stream change"
+       :type       :change-email
+       :params {
+         :in         [:data-stream "The data records to test for the change"]
+         :email      [:email   "The email that the hook will hit"]
+         }})
+  ([stage-def]
+    (let [last-value     (atom nil)
+          email          (:email stage-def)]
+
+      (fn [x]
+        (if (not (= @last-value (:data-value x)))
+          (push-email-alert email
+                             (:hive-uuid x)
+                             (:worker-uuid x)
+                             (:data-name x)
+                             (:data-value x)
+                             @last-value
+                             :changed))
+        (reset! last-value (:data-value x))))))
+
+(defn changed-post-stage
+  ([] {:type       :change-post
+       :description "POST to an url when the data record is different from the previous one"
+       :params {
+         :in         [:data-stream "The data records to test for the change"]
+         :url        [:url   "The URL that the POST hook will hit"]
+         }})
+  ([stage-def]
+    (let [last-value     (atom nil)
+          url          (:url stage-def)]
+
+      (fn [x]
+        (if (not (= @last-value (:data-value x)))
+          (push-post-alert   url
+                             (:hive-uuid x)
+                             (:worker-uuid x)
+                             (:data-name x)
+                             (:data-value x)
+                             @last-value
+                             :changed))
+        (reset! last-value (:data-value x))))))
+
 (defn average-stage
-  ([] {:in         :data-stream
+  ([] {
        :type       :average
-       :out        [:data-stream "Name of the output field the average should go to"]
-       :window     [:integer "How long to wait between averages (in ms)"]
-       })
+       :description "Average the stream of data records and emit the result to a new data stream"
+       :params {
+         :in         [:data-stream "The data records to feed into the average calculations"]
+         :out        [:data-stream "Name of the output field the average should go to"]
+         :window     [:integer "How long to wait between averages (in ms)"]
+         }})
   ([stage-def]
     (let [start-state      {:sum 0 :cnt 0 :avg 0}
           window           (or (:window stage-def) 5000)
@@ -182,11 +233,13 @@
               (swap! state assoc stream-id start-state))))))))
 
 (defn log-stage
-  ([] {:in         :data-stream
-       :type       :log
-       :visiblity  :hidden
-       :count-rate [:integer "How often you should emit that you have recvd messages"]
-       })
+  ([] {:type       :log
+       :description "Logging periodically that we received X records"
+       :hidden     true
+       :parms {
+         :in         [:data-stream "The data records to log"]
+         :count-rate [:integer "How often you should emit that you have recvd messages"]
+         }})
   ([stage-def]
     (let [stage-count (or (:count-rate stage-def) 1)
           cnt (atom 0)
@@ -201,9 +254,11 @@
   a specified stage was requested, but is invalid.
   This is the stage which emits data.
   Boo, you messed up!"
-  ([] {:in         :data-stream
-       :type       :missing-stage
-       :visiblity  :hidden
+  ([] {:type       :missing-stage
+       :hidden     true
+       :params {
+         :in         [:data-stream "plaeceholder. should never see this"]
+        }
        })
   ([stage-def]
     (fn [x]
@@ -214,14 +269,16 @@
   :size is 10000 by default
   :window is the max time between dumps
   Dumps when it gets to a certain number of records or the time is passed"
-  ([] {:in         :data-stream
+  ([] {:description "Periodically dump this set of data records to S3"
        :type       :dump-s3
-       :bucket     [:string "Name of the bucket to put record files into"]
-       :secret-key [:string "Your IAM secret key"]
-       :access-key [:string "Your IAM access key"]
-       :size       [:integer "How many records to buffer before a write. Default is 10000"]
-       :window     [:integer "How long to wait between writes (in ms)"]
-       })
+       :params {
+         :in         [:data-stream "The data stream of records to dump to S3"]
+         :bucket     [:string "Name of the bucket to put record files into"]
+         :secret-key [:string "Your IAM secret key"]
+         :access-key [:string "Your IAM access key"]
+         :size       [:integer "How many records to buffer before a write. Default is 10000"]
+         :window     [:integer "How long to wait between writes (in ms)"]
+       }})
   ([stage-def]
     (let [data             (atom [])
           last-dump        (atom (.getTime (java.util.Date.)))
@@ -249,12 +306,15 @@
   :window is the max time between dumps
   Dumps when it gets to a certain number of records or the time is passed
   Will HTTP POST this to your endpoint"
-  ([] {:in         :data-stream
+  ([] {
        :type       :dump-post
-       :url        [:string  "Which URL to POST to"]
-       :size       [:integer "How many records to buffer before a write. Default is 10000"]
-       :window     [:integer "How long to wait between writes (in ms)"]
-       })
+       :description "Periodically dump this set of data records to a POST hook"
+       :params {
+         :in         [:data-stream "The data records to dump to a POST"]
+         :url        [:string  "Which URL to POST to"]
+         :size       [:integer "How many records to buffer before a write. Default is 10000"]
+         :window     [:integer "How long to wait between writes (in ms)"]
+       }})
   ([stage-def]
     (let [data             (atom [])
           last-dump        (atom (.getTime (java.util.Date.)))
@@ -276,21 +336,27 @@
                 (reset! data [])
                 (reset! last-dump (.getTime (java.util.Date.))))))))))
 
-(defn stages
+(defn hive-data-stages-specs
   "Returns all the descriptions of each of the stages that
   can be added to the pipeline"
   []
-  (into {} (map #(let [spec (%)]
-                       [(:type spec) {:factory %
-                                      :spec spec}])
-                       ) [ log-stage
-                           dump-s3-stage
-                           dump-post-stage
-                           missing-stage-stage
-                           average-stage
-                           alert-email-stage
-                           alert-post-stage
-                          ]))
+  (try
+    (let [all-stages       [ log-stage
+                             dump-s3-stage
+                             dump-post-stage
+                             missing-stage-stage
+                             average-stage
+                             alert-email-stage
+                             alert-post-stage
+                             changed-email-stage
+                             changed-post-stage
+                            ] ]
+      (logger/info "Stages: " all-stages)
+      (into {} (map #(let [spec (%)]
+                         [(:type spec) {:factory %
+                                        :spec spec}])
+                    all-stages)))
+    (catch Exception e (logger/error "Error: " e))))
 
 (defn hive-data-stages-notify-changes
   "When the hive data stages changed, we emit a :restart to the hive's
@@ -311,7 +377,7 @@
   [hive-uuid stage-type & params-arr]
   (let [params (apply hash-map params-arr)
         stage-type (keyword stage-type)
-        spec   (:spec (get (stages) stage-type))]
+        spec   (:spec (get (hive-data-stages-specs) stage-type))]
   ;; Validate arguments
   (logger/info "TODO - be more careful about cleaning parameters!")
 

@@ -8,7 +8,7 @@
 (use-fixtures :each clean-database)
 
 (deftest get-stages
-  (is (stages)))
+  (is (hive-data-stages-specs)))
 
 (deftest reading-saving-data-processing-stages
   (testing "create the stage"
@@ -27,7 +27,7 @@
 
 (deftest average-stage-test
   (testing "that worker -> hive works"
-    (let [stage ((:factory (get (stages) :average)) {:in {:worker "test"}
+    (let [stage ((:factory (get (hive-data-stages-specs) :average)) {:in {:worker "test"}
                                                    :out {:hive "test-avg"}
                                                    :window 0
                                                    })]
@@ -48,12 +48,10 @@
             (is (= (nth call 0) "1"))
             (is (= (nth call 1) nil))
           ))
-        (conjure/verify-call-times-for push-data 12)
-        )
       ))
 
   (testing "that worker -> worker works"
-    (let [stage ((:factory (get (stages) :average)) {:in {:worker "test"}
+    (let [stage ((:factory (get (hive-data-stages-specs) :average)) {:in {:worker "test"}
                                                    :out {:worker "test-avg"}
                                                    :window 0
                                                    })]
@@ -81,7 +79,7 @@
         )
       ))
   (testing "that hive -> hive works"
-    (let [stage ((:factory (get (stages) :average)) {:in {:hive "test"}
+    (let [stage ((:factory (get (hive-data-stages-specs) :average)) {:in {:hive "test"}
                                                    :out {:hive "test-avg"}
                                                    :window 0
                                                    })]
@@ -107,11 +105,85 @@
             ))
         (conjure/verify-call-times-for push-data 12)
         )
-      ))
+      ))))
+
+(deftest changed-email-stage-test
+  (testing "that you deliver an alert to POST when a worker changes"
+    (let [stage ((:factory (get (hive-data-stages-specs) :change-email))
+                 { :in  {:worker "test"}
+                   :url "http://email-hook.com"})]
+      ;; We want to push in some worker data.
+      ;; Since it is going from both workers to the output
+      (conjure/mocking [push-email-alert]
+        (let [msg (hash-map
+                          :hive-uuid "1"
+                          :worker-uuid "1"
+                          :data-value nil
+                          :data-name "test")]
+
+          (stage (assoc msg :data-value "0"))
+          (conjure/verify-call-times-for push-email-alert 1)
+          (stage (assoc msg :data-value "0"))
+          (conjure/verify-call-times-for push-email-alert 1)
+          (stage (assoc msg :data-value "0"))
+          (conjure/verify-call-times-for push-email-alert 1)
+          (stage (assoc msg :data-value "0"))
+          (conjure/verify-call-times-for push-email-alert 1)
+          (stage (assoc msg :data-value "1"))
+          (conjure/verify-call-times-for push-email-alert 2)
+          (stage (assoc msg :data-value "1"))
+          (conjure/verify-call-times-for push-email-alert 2)
+          (stage (assoc msg :data-value "1"))
+          (conjure/verify-call-times-for push-email-alert 2)
+          (stage (assoc msg :data-value "1"))
+          (conjure/verify-call-times-for push-email-alert 2)
+          (stage (assoc msg :data-value "2"))
+          (conjure/verify-call-times-for push-email-alert 3)
+          (stage (assoc msg :data-value "3"))
+          (conjure/verify-call-times-for push-email-alert 4)
+        )))
+    )
+)
+(deftest changed-post-stage-test
+  (testing "that you deliver an alert to POST when a worker changes"
+    (let [stage ((:factory (get (hive-data-stages-specs) :change-post))
+                 { :in  {:worker "test"}
+                   :url "http://post-hook.com"})]
+      ;; We want to push in some worker data.
+      ;; Since it is going from both workers to the output
+      (conjure/mocking [push-post-alert]
+        (let [msg (hash-map
+                          :hive-uuid "1"
+                          :worker-uuid "1"
+                          :data-value nil
+                          :data-name "test")]
+
+          (stage (assoc msg :data-value "0"))
+          (conjure/verify-call-times-for push-post-alert 1)
+          (stage (assoc msg :data-value "0"))
+          (conjure/verify-call-times-for push-post-alert 1)
+          (stage (assoc msg :data-value "0"))
+          (conjure/verify-call-times-for push-post-alert 1)
+          (stage (assoc msg :data-value "0"))
+          (conjure/verify-call-times-for push-post-alert 1)
+          (stage (assoc msg :data-value "1"))
+          (conjure/verify-call-times-for push-post-alert 2)
+          (stage (assoc msg :data-value "1"))
+          (conjure/verify-call-times-for push-post-alert 2)
+          (stage (assoc msg :data-value "1"))
+          (conjure/verify-call-times-for push-post-alert 2)
+          (stage (assoc msg :data-value "1"))
+          (conjure/verify-call-times-for push-post-alert 2)
+          (stage (assoc msg :data-value "2"))
+          (conjure/verify-call-times-for push-post-alert 3)
+          (stage (assoc msg :data-value "3"))
+          (conjure/verify-call-times-for push-post-alert 4)
+        )))
+    )
 )
 (deftest alert-post-stage-test
   (testing "that you deliver an alert to POST when a worker goes over"
-    (let [stage ((:factory (get (stages) :alert-post))
+    (let [stage ((:factory (get (hive-data-stages-specs) :alert-post))
                  {
                     :in  {:worker "test"}
                     :url "http://post-hook.com"
@@ -139,7 +211,7 @@
         )))
     )
     (testing "that you deliver an alert to POST when a worker goes gte"
-      (let [stage ((:factory (get (stages) :alert-post))
+      (let [stage ((:factory (get (hive-data-stages-specs) :alert-post))
                    {
                       :in  {:worker "test"}
                       :url "http://post-hook.com"
@@ -165,8 +237,9 @@
             (stage (assoc msg :data-value "3"))
             (conjure/verify-call-times-for push-post-alert 2)
           ))))
+
     (testing "that you deliver an alert to POST when a worker goes lt"
-      (let [stage ((:factory (get (stages) :alert-post))
+      (let [stage ((:factory (get (hive-data-stages-specs) :alert-post))
                    {
                       :in  {:worker "test"}
                       :url "http://post-hook.com"
@@ -193,7 +266,7 @@
             (conjure/verify-call-times-for push-post-alert 2)
           ))))
     (testing "that you deliver an alert to POST when a worker goes lte"
-      (let [stage ((:factory (get (stages) :alert-post))
+      (let [stage ((:factory (get (hive-data-stages-specs) :alert-post))
                    {
                       :in  {:worker "test"}
                       :url "http://post-hook.com"
@@ -220,7 +293,7 @@
             (conjure/verify-call-times-for push-post-alert 3)
           ))))
     (testing "that you deliver an alert to POST when a worker goes eq"
-      (let [stage ((:factory (get (stages) :alert-post))
+      (let [stage ((:factory (get (hive-data-stages-specs) :alert-post))
                    {
                       :in  {:worker "test"}
                       :url "http://post-hook.com"
@@ -250,7 +323,7 @@
 
 (deftest alert-email-stage-test
   (testing "that you deliver an alert to email when a worker goes over"
-    (let [stage ((:factory (get (stages) :alert-email))
+    (let [stage ((:factory (get (hive-data-stages-specs) :alert-email))
                  {
                     :in  {:worker "test"}
                     :value "2"
@@ -277,7 +350,7 @@
         )))
     )
     (testing "that you deliver an alert to email when a worker goes gte"
-      (let [stage ((:factory (get (stages) :alert-email))
+      (let [stage ((:factory (get (hive-data-stages-specs) :alert-email))
                    {
                       :in  {:worker "test"}
                       :url "http://email-hook.com"
@@ -304,7 +377,7 @@
             (conjure/verify-call-times-for push-email-alert 2)
           ))))
     (testing "that you deliver an alert to email when a worker goes lt"
-      (let [stage ((:factory (get (stages) :alert-email))
+      (let [stage ((:factory (get (hive-data-stages-specs) :alert-email))
                    {
                       :in  {:worker "test"}
                       :url "http://email-hook.com"
@@ -331,7 +404,7 @@
             (conjure/verify-call-times-for push-email-alert 2)
           ))))
     (testing "that you deliver an alert to email when a worker goes lte"
-      (let [stage ((:factory (get (stages) :alert-email))
+      (let [stage ((:factory (get (hive-data-stages-specs) :alert-email))
                    {
                       :in  {:worker "test"}
                       :url "http://email-hook.com"
@@ -358,7 +431,7 @@
             (conjure/verify-call-times-for push-email-alert 3)
           ))))
     (testing "that you deliver an alert to email when a worker goes eq"
-      (let [stage ((:factory (get (stages) :alert-email))
+      (let [stage ((:factory (get (hive-data-stages-specs) :alert-email))
                    {
                       :in  {:worker "test"}
                       :url "http://email-hook.com"
