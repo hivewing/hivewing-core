@@ -94,7 +94,7 @@
   But also through the SQL database, so you can read it
   from the API"
   [hive-uuid worker-uuid data-name data-value]
-    (logger/info "TODO Sending this out: " hive-uuid worker-uuid data-name data-value))
+    (hive-data-push-to-processing hive-uuid worker-uuid data-name data-value (java.util.Date.)))
 
 
 (defn alert-email-stage

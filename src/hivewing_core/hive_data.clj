@@ -37,7 +37,7 @@
   [hive-uuid worker-uuid data-name data-value at]
   (logger/info "Push to processing:" hive-uuid worker-uuid data-name data-value at)
   (try
-  (sqs/send-message config/sqs-aws-credentials
+    (sqs/send-message config/sqs-aws-credentials
                     (hive-data-sqs-queue)
                     (prn-str {:hive-uuid (str hive-uuid)
                               :worker-uuid (str worker-uuid)
