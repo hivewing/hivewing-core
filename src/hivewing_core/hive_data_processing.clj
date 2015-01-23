@@ -5,6 +5,7 @@
             [amazonica.aws.sqs :as sqs]
             [hivewing-core.hive-data :as hd]
             [hivewing-core.hive-data-stages :as hds]
+            [clojure.stacktrace :refer :all ]
             [clojure.core.async :as async]))
 
 (comment
@@ -12,8 +13,9 @@
   )
 
 (defn create-msg-filter [ stage-def ]
-  (let [worker-selector (first (keys (:in stage-def)))
-        data-name       (first (vals (:in stage-def)))]
+  (let [worker-selector (first (keys (:in (:params stage-def))))
+        data-name       (first (vals (:in (:params stage-def))))]
+
     (fn [x]
       (and (or
              ;; If it's ANY worker, it should
@@ -29,7 +31,7 @@
   [ stage-def ]
   (let [msg-filter (create-msg-filter stage-def)
         stages     (hds/hive-data-stages-specs)
-        selected-stage (get stages (:type stage-def))
+        selected-stage (get stages (:stage_type stage-def))
         safe-stage (or selected-stage (get stages :missing-stage))
         transform  ((:factory safe-stage) stage-def)
         ]
@@ -53,7 +55,11 @@
          (doseq [pipeline-stage pipeline-stages]
             (try
               (pipeline-stage x)
-              (catch Exception e (logger/error "Error: " e))))
+              (catch Exception e
+                (do
+                  (logger/error "Pipeline Error: " e)
+                  (print-stack-trace e)))))
+
          (step r x)
          )))))
 

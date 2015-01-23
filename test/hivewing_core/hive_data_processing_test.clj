@@ -9,6 +9,18 @@
 (use-fixtures :each clean-database)
 
 
+(comment
+
+    (def hu "12345678-1234-1234-1234-123456789012")
+    (def pipeline-desc (hive-data-stages-index hu))
+    (hive-data-get-keys hu)
+    (hive-data-read hu nil "worker-data-avg")
+    (doseq [x (range 0 60)]
+      (Thread/sleep 500)
+      (hive-data-push-to-processing hu "worker-uuid" "data" x (java.util.Date.))
+      (hive-data-push-to-processing hu nil "hive-data" x (java.util.Date.))
+      )
+    )
 
 (deftest test-get-firehose
   (let [channel (drink-the-firehose!)]

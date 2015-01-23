@@ -5,16 +5,20 @@
             [hivewing-core.core :refer [ensure-uuid]]
             [hivewing-core.postgres-json :as pgjson]
             [hivewing-core.hive-data :as hd]
+            [hivewing-core.spokesman :as spokesman]
             [hivewing-core.configuration :refer [sql-db]]
+            [clojure.stacktrace :refer :all ]
             [clojure.java.jdbc :as jdbc]))
 
 (defn parse-number
   "Reads a number from a string. Returns nil if not a number."
   [s]
-  (if (number? s)
-    s
-    (if (re-find #"^-?\d+\.?\d*$" s)
-      (read-string s))))
+  (if (nil? s)
+    nil
+    (if (number? s)
+      s
+      (if (re-find #"^-?\d+\.?\d*$" s)
+        (read-string s)))))
 
 (def message-format {
   :hive-uuid   "(always present)"
@@ -27,9 +31,9 @@
 (defn get-push-worker-uuid
   [stage-def msg]
   (let [
-        in-worker-selector (first (keys (:in stage-def)))
-        in-data-name       (first (vals (:in stage-def)))
-        out-worker-selector (first (keys (:out stage-def)))
+        in-worker-selector (first (keys (:in (:params stage-def))))
+        in-data-name       (first (vals (:in (:params stage-def))))
+        out-worker-selector (first (keys (:out (:params stage-def))))
         ]
 
     (case out-worker-selector
@@ -38,7 +42,7 @@
 
 (defn get-push-data-name
   [stage-def]
-  (first (vals (:out stage-def))))
+  (first (vals (:out (:params stage-def)))))
 
 (defn get-stream-id
   [stage-def msg]
@@ -50,9 +54,9 @@
   ;;
 
   (let [
-        in-worker-selector (first (keys (:in stage-def)))
-        in-data-name       (first (vals (:in stage-def)))
-        out-worker-selector (first (keys (:out stage-def)))
+        in-worker-selector (first (keys (:in (:params stage-def))))
+        in-data-name       (first (vals (:in (:params stage-def))))
+        out-worker-selector (first (keys (:out (:params stage-def))))
         ]
     (case in-worker-selector
       :worker
@@ -68,10 +72,15 @@
           baseline-i   (parse-number baseline-value)
           test-func (case test-func
                 :gt  >
+                "gt" >
                 :gte >=
+                "gte" >=
                 :lt  <
+                "lt" <
                 :lte <=
+                "lte" <=
                 :eq  =
+                "eq" =
                 "default" =)]
       (if (and data-value-i baseline-i)
           (test-func data-value-i baseline-i)
@@ -81,21 +90,38 @@
   "Push an alert - to the system.
   Can usually be an email of POST hook"
   [url hive-uuid worker-uuid data-name data-value baseline test-func]
-  (logger/info "TODO POST ALERT:" hive-uuid worker-uuid data-name data-value baseline test-func))
+  (logger/info "POST ALERT:" hive-uuid worker-uuid data-name data-value baseline test-func)
+  (spokesman/spokesman-queue-post-hook url {}
+           {:hive-uuid hive-uuid
+            :worker-uuid worker-uuid
+            :data-name data-name
+            :data-value data-value
+            :baseline baseline
+            :test-func test-func}))
 
 (defn push-email-alert
   "Push an alert - to the system.
   Can usually be an email of POST hook"
   [email-addr hive-uuid worker-uuid data-name data-value baseline test-func]
-  (logger/info "TODO EMAIL ALERT:" hive-uuid worker-uuid data-name data-value baseline test-func))
+  (logger/info "EMAIL ALERT:" hive-uuid worker-uuid data-name data-value baseline test-func)
+  (let [body (str "The hive " hive-uuid "\n"
+                 "Had an alert:\n\n"
+                 data-name " has a value that fell outside the test parameters\n"
+
+                 "[" data-value "]"
+
+                 "\n\nThe baseline is " baseline " and the test is " test-func)]
+    (spokesman/spokesman-queue-email
+        email-addr
+        (str "Hivewing Alert: " hive-uuid " " worker-uuid " " data-name)
+        body body)))
 
 (defn push-data
   "Push the message out (back into Kinesis really)
   But also through the SQL database, so you can read it
   from the API"
   [hive-uuid worker-uuid data-name data-value]
-    (hive-data-push-to-processing hive-uuid worker-uuid data-name data-value (java.util.Date.)))
-
+    (hd/hive-data-push hive-uuid worker-uuid data-name data-value))
 
 (defn alert-email-stage
   ([] {:type       :alert-email
@@ -107,18 +133,19 @@
          :test       [:enum  "The comparator" [:gt :gte :lt :lte :eq]]
          }})
   ([stage-def]
-    (let [baseline-value (:value stage-def)
-          email          (:email stage-def)]
+    (let [stage-params   (:params stage-def)
+          baseline-value (:value stage-params)
+          email          (:email stage-params)]
 
       (fn [x]
-        (if (compare-values (:test stage-def) (:data-value x) baseline-value)
+        (if (compare-values (:test stage-params) (:data-value x) baseline-value)
           (push-email-alert email
                              (:hive-uuid x)
                              (:worker-uuid x)
                              (:data-name x)
                              (:data-value x)
                              baseline-value
-                             (:test stage-def)))))))
+                             (:test stage-params)))))))
 (defn alert-post-stage
   ([] {:type       :alert-post
        :description "POST to an url when a test condition is triggered by a data record"
@@ -129,17 +156,18 @@
          :test       [:enum  "The comparator" [:gt :gte :lt :lte :eq]]
          }})
   ([stage-def]
-    (let [baseline-value (:value stage-def)
-          url             (:url stage-def)]
+    (let [stage-params   (:params stage-def)
+          baseline-value (:value stage-params)
+          url             (:url stage-params)]
       (fn [x]
-        (if (compare-values (:test stage-def) (:data-value x) baseline-value)
+        (if (compare-values (:test stage-params) (:data-value x) baseline-value)
             (push-post-alert url
                              (:hive-uuid x)
                              (:worker-uuid x)
                              (:data-name x)
                              (:data-value x)
                              baseline-value
-                             (:test stage-def)))))))
+                             (:test stage-params)))))))
 
 (defn changed-email-stage
   ([] {:description "Send an email to an address when the values in the data stream change"
@@ -149,8 +177,9 @@
          :email      [:email   "The email that the hook will hit"]
          }})
   ([stage-def]
-    (let [last-value     (atom nil)
-          email          (:email stage-def)]
+    (let [stage-params   (:params stage-def)
+          last-value     (atom nil)
+          email          (:email stage-params)]
 
       (fn [x]
         (if (not (= @last-value (:data-value x)))
@@ -171,8 +200,9 @@
          :url        [:url   "The URL that the POST hook will hit"]
          }})
   ([stage-def]
-    (let [last-value     (atom nil)
-          url          (:url stage-def)]
+    (let [stage-params   (:params stage-def)
+          last-value     (atom nil)
+          url            (:url stage-params)]
 
       (fn [x]
         (if (not (= @last-value (:data-value x)))
@@ -187,17 +217,19 @@
 
 (defn average-stage
   ([] {
-       :type       :average
-       :description "Average the stream of data records and emit the result to a new data stream"
+       :type         :average
+       :description  "Average the stream of data records and emit the result to a new data stream"
+
        :params {
          :in         [:data-stream "The data records to feed into the average calculations"]
          :out        [:data-stream "Name of the output field the average should go to"]
          :window     [:integer "How long to wait between averages (in ms)"]
          }})
   ([stage-def]
-    (let [start-state      {:sum 0 :cnt 0 :avg 0}
-          window           (or (:window stage-def) 5000)
-          output-target    (:out stage-def)
+    (let [stage-params     (:params stage-def)
+          start-state      {:sum 0 :cnt 0 :avg 0}
+          window           (or (parse-number (:window stage-params)) 5000)
+          output-target    (:out stage-params)
           ;; Average needs to hold values for ALL the inputs
           state            (atom {})
           last-calculation (atom {})
@@ -230,7 +262,7 @@
               (push-data (:hive-uuid x)
                          (get-push-worker-uuid stage-def x)
                          (get-push-data-name stage-def)
-                         new-avg)
+                         (float new-avg))
               (swap! state assoc stream-id start-state))))))))
 
 (defn log-stage
@@ -242,7 +274,8 @@
          :count-rate [:integer "How often you should emit that you have recvd messages"]
          }})
   ([stage-def]
-    (let [stage-count (or (:count-rate stage-def) 1)
+    (let [stage-params     (:params stage-def)
+          stage-count (or  (:count-rate stage-params) 1)
           cnt (atom 0)
           ]
       (fn [x]
@@ -281,11 +314,12 @@
          :window     [:integer "How long to wait between writes (in ms)"]
        }})
   ([stage-def]
-    (let [data             (atom [])
+    (let [stage-params     (:params stage-def)
+          data             (atom [])
           last-dump        (atom (.getTime (java.util.Date.)))
-          window           (or (:window stage-def) 5000)
-          size             (or (:size stage-def)   10000)
-          output-target    (:out stage-def)]
+          window           (or (parse-number (:window stage-params)) 5000)
+          size             (or (:size stage-params)   10000)
+          output-target    (:out stage-params)]
       (fn [x]
         (let [now (.getTime (java.util.Date.))
               wait-until (+ @last-dump window)]
@@ -317,11 +351,12 @@
          :window     [:integer "How long to wait between writes (in ms)"]
        }})
   ([stage-def]
-    (let [data             (atom [])
+    (let [stage-params     (:params stage-def)
+          data             (atom [])
           last-dump        (atom (.getTime (java.util.Date.)))
-          window           (or (:window stage-def) 5000)
-          size             (or (:size stage-def)   10000)
-          output-target    (:out stage-def)]
+          window           (or (parse-number (:window stage-params)) 5000)
+          size             (or (:size stage-params)   10000)
+          output-target    (:out stage-params)]
       (fn [x]
         (let [now (.getTime (java.util.Date.))
               wait-until (+ @last-dump window)]
@@ -357,20 +392,27 @@
                          [(:type spec) {:factory %
                                         :spec spec}])
                     all-stages)))
-    (catch Exception e (logger/error "Error: " e))))
+    (catch Exception e (do
+                         (print-stack-trace e)
+                         (logger/error "Error: " (e))))))
+
+(defn hive-data-stages-process-record
+  [record]
+  (assoc record :stage_type (keyword (:stage_type record))))
 
 (defn hive-data-stages-index
   [hive-uuid]
 
   (try
-    (jdbc/query sql-db ["SELECT * FROM hive_data_processing_stages WHERE hive_uuid = ?" (ensure-uuid hive-uuid)])
+    (let [res (jdbc/query sql-db ["SELECT * FROM hive_data_processing_stages WHERE hive_uuid = ?" (ensure-uuid hive-uuid)])]
+      (map hive-data-stages-process-record res))
     (catch clojure.lang.ExceptionInfo e [])))
 
 (defn hive-data-stages-get
   [hive-uuid stage-uuid]
 
   (try
-    (first (jdbc/query sql-db ["SELECT * FROM hive_data_processing_stages WHERE hive_uuid = ? AND uuid = ? LIMIT 1" (ensure-uuid hive-uuid) (ensure-uuid stage-uuid)]))
+    (hive-data-stages-process-record (first (jdbc/query sql-db ["SELECT * FROM hive_data_processing_stages WHERE hive_uuid = ? AND uuid = ? LIMIT 1" (ensure-uuid hive-uuid) (ensure-uuid stage-uuid)])))
     (catch clojure.lang.ExceptionInfo e false)))
 
 (defn hive-data-stages-create
@@ -382,7 +424,7 @@
   (logger/info "TODO - be more careful about cleaning parameters!")
 
   ;; Create DB record
-  (let [clean-params {:stage_type (str stage-type)
+  (let [clean-params {:stage_type (name stage-type)
                       :hive_uuid (ensure-uuid hive-uuid)
                       :params params}
         result (first (jdbc/insert! sql-db :hive_data_processing_stages clean-params))
