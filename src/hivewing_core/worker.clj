@@ -60,6 +60,7 @@
   (worker-fields-except (if (not (:include-access-token params)) "access_token"))
 
   )
+
 (defn worker-get
   "Get the data for worker record.  You pass in the worker via the worker uuid.  Returns the data
   as a hashmap. DOES NOT return the access_token"

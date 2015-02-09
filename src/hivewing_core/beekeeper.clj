@@ -74,6 +74,15 @@
 (def beekeeper-password-regex
   #"^(?=.{6,32}$)(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9$!_-]).*")
 
+(defn beekeeper-update
+  "Update the beekeeper record"
+  [bk-uuid new-fields]
+
+  (jdbc/update! sql-db
+                :beekeepers
+                (select-keys new-fields [:email])
+                ["uuid = ?" (ensure-uuid bk-uuid)]))
+
 (defn beekeeper-set-password
   "Set the password on a beekeeper, without a password they can't log in."
   [bk-uuid password]

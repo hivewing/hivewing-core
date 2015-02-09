@@ -16,6 +16,13 @@
   [bk-uuid]
   (jdbc/query sql-db ["SELECT * FROM hive_managers WHERE beekeeper_uuid = ?" (ensure-uuid bk-uuid)]))
 
+(defn hive-managers-get-public-keys
+  "Get all the public-keys for all the managers of a hive"
+  [hive-uuid]
+  (jdbc/query sql-db [(str "SELECT key FROM public_keys "
+                      " INNER JOIN hive_managers ON public_keys.beekeeper_uuid = hive_managers.beekeeper_uuid "
+                      " WHERE hive_managers.hive_uuid = ?") (ensure-uuid hive-uuid)]))
+
 (defn hive-managers-get
   "Get all the hive managers for a hive"
   [hive-uuid]

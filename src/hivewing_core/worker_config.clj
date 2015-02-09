@@ -18,6 +18,16 @@
   [keyname]
   (str ".tracing." keyname))
 
+(defn public-key-key
+  [] ".worker-public-key")
+
+(defn beekeeper-public-keys-key
+  [] ".beekeeper-public-keys")
+
+(defn porter-hosts-key [] ".porter-hosts")
+
+(defn worker-uuid-key [] ".worker-uuid")
+
 (defn worker-config-updates-channel
   "Generates the channel worker config updates are on"
   [worker-uuid]
@@ -59,6 +69,16 @@
       ;;result)
     (catch clojure.lang.ExceptionInfo e false)))
 
+(defn worker-config-get-public-key
+  "Get the worker-config public-key for a worker"
+  [worker-uuid]
+  (let [
+        sql   (str "SELECT * "
+                        " FROM worker_configs "
+                        " WHERE worker_uuid = ? "
+                        " AND key = " public-key-key " LIMIT 1")]
+        (first (jdbc/query sql-db [ sql (ensure-uuid worker-uuid)]))))
+
 (defn worker-config-get-tasks
   "Get the tasks for this worker"
   [worker-uuid]
@@ -73,6 +93,7 @@
         result (into {} kv-pairs) ]
     result
   ))
+
 (defn worker-config-get-tracing
   [worker-uuid]
   (let [task-names (keys (worker-config-get-tasks worker-uuid))]
