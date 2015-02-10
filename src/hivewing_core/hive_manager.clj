@@ -1,6 +1,7 @@
 (ns hivewing-core.hive-manager
   (:require [hivewing-core.configuration :refer [sql-db]]
             [hivewing-core.core :refer [ensure-uuid]]
+            [hivewing-core.public-key-notification :as pkn]
             [clojure.java.jdbc :as jdbc]))
 
 (defn hive-manager-create
@@ -9,8 +10,12 @@
   (let [clean-hive (ensure-uuid hive-uuid)
         clean-bk   (ensure-uuid beekeeper-uuid)
         roles-hsh  (apply hash-map roles)
-        parameters (into {:hive_uuid clean-hive :beekeeper_uuid clean-bk } roles-hsh) ]
-    (first (jdbc/insert! sql-db :hive_managers parameters))))
+        parameters (into {:hive_uuid clean-hive :beekeeper_uuid clean-bk } roles-hsh)
+        res (first (jdbc/insert! sql-db :hive_managers parameters))
+        ]
+      (pkn/public-keys-notify-of-hive-change hive-uuid)
+      res
+    ))
 
 (defn hive-managers-managing
   [bk-uuid]
@@ -31,5 +36,9 @@
 (defn hive-manager-delete
   "Delete a hive manager"
   [hive-manager-uuid]
-  (let [hmu (ensure-uuid hive-manager-uuid)]
-    (jdbc/delete! sql-db :hive_managers ["uuid = ?" hmu])))
+  (let [hmu (ensure-uuid hive-manager-uuid)
+        hive-uuid (:hive_uuid (first (jdbc/query sql-db ["SELECT hive_uuid FROM hive_managers WHERE uuid = ?" (ensure-uuid hive-manager-uuid)])))
+        res (jdbc/delete! sql-db :hive_managers ["uuid = ?" hmu])
+        ]
+      (pkn/public-keys-notify-of-hive-change hive-uuid)
+      res))
