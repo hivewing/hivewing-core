@@ -1,7 +1,7 @@
 (ns hivewing-core.hive-manager
   (:require [hivewing-core.configuration :refer [sql-db]]
             [hivewing-core.core :refer [ensure-uuid]]
-            [hivewing-core.public-key-notification :as pkn]
+            [hivewing-core.public-keys-notification :as pkn]
             [hivewing-core.hive-image-notification :as hin]
             [clojure.java.jdbc :as jdbc]))
 
