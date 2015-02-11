@@ -76,8 +76,9 @@
         sql   (str "SELECT * "
                         " FROM worker_configs "
                         " WHERE worker_uuid = ? "
-                        " AND key = " public-key-key " LIMIT 1")]
-        (first (jdbc/query sql-db [ sql (ensure-uuid worker-uuid)]))))
+                        " AND key = ? LIMIT 1")
+        res (first (jdbc/query sql-db [ sql (ensure-uuid worker-uuid) (public-key-key)]))]
+    res))
 
 (defn worker-config-get-tasks
   "Get the tasks for this worker"
@@ -141,14 +142,14 @@
         (jdbc/delete! sql-db :worker_configs ["worker_uuid = ? AND LOWER(key) = LOWER(?)" (ensure-uuid worker-uuid) key-name])
         (do
           (let [update (jdbc/update! sql-db :worker_configs
-                       {:data (pg-json/value-to-json-pgobject value)}
+                       {:data value}
                        ["worker_uuid = ? AND LOWER(key) = LOWER(?)"
                         (ensure-uuid worker-uuid) key-name])]
             (if (= 0 (first update))
                    (jdbc/insert! sql-db :worker_configs
                      {:worker_uuid (ensure-uuid worker-uuid)
                       :key (clojure.string/lower-case key-name)
-                      :data (pg-json/value-to-json-pgobject value)}))))))
+                      :data value}))))))
 
     (let [[only-current only-new things-in-both] (clojure.data/diff current-params clean-parameters)]
       (if (and (not suppress-change-publication) (not (nil? only-new)))
