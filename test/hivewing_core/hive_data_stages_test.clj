@@ -190,13 +190,13 @@
 (deftest alert-post-stage-test
   (testing "that you deliver an alert to POST when a worker goes over"
     (let [stage ((:factory (get (hive-data-stages-specs) :alert-post))
-                 {
+                 {:params {
                     :in  {:worker "test"}
                     :url "http://post-hook.com"
                     :value "2"
                     :test :gt
                     :window 0
-                 })]
+                 }})]
       ;; We want to push in some worker data.
       ;; Since it is going from both workers to the output
       (conjure/mocking [push-post-alert]
@@ -218,13 +218,13 @@
     )
     (testing "that you deliver an alert to POST when a worker goes gte"
       (let [stage ((:factory (get (hive-data-stages-specs) :alert-post))
-                   {
+                   {:params {
                       :in  {:worker "test"}
                       :url "http://post-hook.com"
                       :value "2"
                       :test :gte
                       :window 0
-                   })]
+                   }})]
         ;; We want to push in some worker data.
         ;; Since it is going from both workers to the output
         (conjure/mocking [push-post-alert]
@@ -246,13 +246,13 @@
 
     (testing "that you deliver an alert to POST when a worker goes lt"
       (let [stage ((:factory (get (hive-data-stages-specs) :alert-post))
-                   {
+                   { :params {
                       :in  {:worker "test"}
                       :url "http://post-hook.com"
                       :value "2"
                       :test :lt
                       :window 0
-                   })]
+                   }})]
         ;; We want to push in some worker data.
         ;; Since it is going from both workers to the output
         (conjure/mocking [push-post-alert]
@@ -273,13 +273,13 @@
           ))))
     (testing "that you deliver an alert to POST when a worker goes lte"
       (let [stage ((:factory (get (hive-data-stages-specs) :alert-post))
-                   {
+                   { :params {
                       :in  {:worker "test"}
                       :url "http://post-hook.com"
                       :value "2"
                       :test :lte
                       :window 0
-                   })]
+                   }})]
         ;; We want to push in some worker data.
         ;; Since it is going from both workers to the output
         (conjure/mocking [push-post-alert]
@@ -300,13 +300,13 @@
           ))))
     (testing "that you deliver an alert to POST when a worker goes eq"
       (let [stage ((:factory (get (hive-data-stages-specs) :alert-post))
-                   {
+                   {:params {
                       :in  {:worker "test"}
                       :url "http://post-hook.com"
                       :value "2"
                       :test :eq
                       :window 0
-                   })]
+                   }})]
         ;; We want to push in some worker data.
         ;; Since it is going from both workers to the output
         (conjure/mocking [push-post-alert]
@@ -330,12 +330,12 @@
 (deftest alert-email-stage-test
   (testing "that you deliver an alert to email when a worker goes over"
     (let [stage ((:factory (get (hive-data-stages-specs) :alert-email))
-                 {
+                 {:params {
                     :in  {:worker "test"}
                     :value "2"
                     :test :gt
                     :window 0
-                 })]
+                 }})]
       ;; We want to push in some worker data.
       ;; Since it is going from both workers to the output
       (conjure/mocking [push-email-alert]
@@ -357,13 +357,13 @@
     )
     (testing "that you deliver an alert to email when a worker goes gte"
       (let [stage ((:factory (get (hive-data-stages-specs) :alert-email))
-                   {
+                   {:params {
                       :in  {:worker "test"}
                       :url "http://email-hook.com"
                       :value "2"
                       :test :gte
                       :window 0
-                   })]
+                   }})]
         ;; We want to push in some worker data.
         ;; Since it is going from both workers to the output
         (conjure/mocking [push-email-alert]
@@ -384,13 +384,13 @@
           ))))
     (testing "that you deliver an alert to email when a worker goes lt"
       (let [stage ((:factory (get (hive-data-stages-specs) :alert-email))
-                   {
+                   {:params {
                       :in  {:worker "test"}
                       :url "http://email-hook.com"
                       :value "2"
                       :test :lt
                       :window 0
-                   })]
+                   }})]
         ;; We want to push in some worker data.
         ;; Since it is going from both workers to the output
         (conjure/mocking [push-email-alert]
@@ -411,13 +411,13 @@
           ))))
     (testing "that you deliver an alert to email when a worker goes lte"
       (let [stage ((:factory (get (hive-data-stages-specs) :alert-email))
-                   {
+                   {:params {
                       :in  {:worker "test"}
                       :url "http://email-hook.com"
                       :value "2"
                       :test :lte
                       :window 0
-                   })]
+                   }})]
         ;; We want to push in some worker data.
         ;; Since it is going from both workers to the output
         (conjure/mocking [push-email-alert]
@@ -438,13 +438,13 @@
           ))))
     (testing "that you deliver an alert to email when a worker goes eq"
       (let [stage ((:factory (get (hive-data-stages-specs) :alert-email))
-                   {
+                   { :params {
                       :in  {:worker "test"}
                       :url "http://email-hook.com"
                       :value "2"
                       :test :eq
                       :window 0
-                   })]
+                   }})]
         ;; We want to push in some worker data.
         ;; Since it is going from both workers to the output
         (conjure/mocking [push-email-alert]
