@@ -153,6 +153,10 @@
 (defn ensure-hive-image-bucket
   "Ensures the S3 bucket for images exists"
   [ & opt]
+
+  ;; We want to set path access
+  (s3/set-s3client-options config/s3-aws-credentials :path-style-access true)
+
   (if (= opt :delete-first)
     (s3/delete-bucket config/s3-aws-credentials hive-image-data-bucket) )
 
@@ -197,11 +201,7 @@
 (defn hive-image-package-url
   [hive-uuid reference]
   (let [object-key (hive-image-package-key hive-uuid reference)]
-    (if (re-find #"^http" (:endpoint config/s3-aws-credentials))
-      ; We do this via some string munging b/c it's all confusing to the system
-      (str (:endpoint config/s3-aws-credentials) "/" hive-image-data-bucket "/" object-key)
-      ; We are in normal-land, so we do it via the s3 aws lib
-      (s3/get-resource-url hive-image-data-bucket object-key))))
+    (s3/get-resource-url hive-image-data-bucket object-key)))
 
 
 (defn hive-image-package-image

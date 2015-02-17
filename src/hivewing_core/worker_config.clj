@@ -10,6 +10,16 @@
             [clojure.java.jdbc :as jdbc]
             [clojure.data :as clj-data]
             [environ.core  :refer [env]]))
+(comment
+  (def wu "5e847a7c-b2c9-11e4-ad01-0242ac1100a7")
+
+  (worker-config-set wu {(public-key-key)
+      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCf/VDku3r+GRYCoEk95S5jKFJDhFqp7TRbugCl1Y3cFnCtcVG1qR9OxpbOIsOafI5B2fNhVFB7Xq1t8Hgw1poeZj7NsePSiTLquwr+0p4ISGl/yfYqDBfDdI/VSVdz73iU+L5gwa+d4ERLkKYDWS6isuw7eHf6zJ1YAjOFiDto4Fnh7QDWdwJPrQJD5afAQgEeT8Z1VO8YjXHWLOYcGCObMk5dRKYmRDTnA+ZsMm+0WuYZkgtSjyoUcpDsgbzJKYC86cVG+e2Upw8aw+NSYqFBw4VtZgTTqx1U5iZZ+Qe5FvyqJLQn6hZPC9hV7AfGacPZoL2nUl+BkulNXXEk25kv cfitzhugh@cfitz-server"}
+                     :allow-system-keys true)
+
+  (worker-config-get-public-key wu)
+
+  )
 
 (defn tasks-key
   [keyname]
