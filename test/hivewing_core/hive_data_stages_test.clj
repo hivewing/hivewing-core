@@ -33,9 +33,11 @@
 
 (deftest average-stage-test
   (testing "that worker -> hive works"
-    (let [stage ((:factory (get (hive-data-stages-specs) :average)) {:in {:worker "test"}
-                                                   :out {:hive "test-avg"}
-                                                   :window 0
+    (let [stage ((:factory (get (hive-data-stages-specs) :average)) {
+                                                                     :params {
+                                                                               :in {:worker "test"}
+                                                                               :out {:hive "test-avg"}
+                                                                               :window 0}
                                                    })]
       ;; We want to push in some worker data.
       ;; Since it is going from both workers to the output
@@ -57,10 +59,12 @@
       ))
 
   (testing "that worker -> worker works"
-    (let [stage ((:factory (get (hive-data-stages-specs) :average)) {:in {:worker "test"}
-                                                   :out {:worker "test-avg"}
-                                                   :window 0
-                                                   })]
+    (let [stage ((:factory (get (hive-data-stages-specs) :average))
+                 {:params
+                  {  :in {:worker "test"}
+                     :out {:worker "test-avg"}
+                     :window 0
+                  }})]
       ;; We want to push in some worker data.
       ;; Since it is going from both workers to the output
       (conjure/mocking [push-data]
@@ -85,10 +89,13 @@
         )
       ))
   (testing "that hive -> hive works"
-    (let [stage ((:factory (get (hive-data-stages-specs) :average)) {:in {:hive "test"}
-                                                   :out {:hive "test-avg"}
-                                                   :window 0
-                                                   })]
+    (let [stage ((:factory (get (hive-data-stages-specs) :average))
+                 {:params
+                  {
+                    :in {:hive "test"}
+                    :out {:hive "test-avg"}
+                    :window 0
+                  }})]
       ;; We want to push in some worker data.
       ;; Since it is going from both workers to the output
       (conjure/mocking [push-data]
@@ -116,8 +123,10 @@
 (deftest changed-email-stage-test
   (testing "that you deliver an alert to POST when a worker changes"
     (let [stage ((:factory (get (hive-data-stages-specs) :change-email))
-                 { :in  {:worker "test"}
-                   :url "http://email-hook.com"})]
+                 {:params
+                  { :in  {:worker "test"}
+                    :url "http://email-hook.com"
+                  }})]
       ;; We want to push in some worker data.
       ;; Since it is going from both workers to the output
       (conjure/mocking [push-email-alert]
@@ -153,8 +162,10 @@
 (deftest changed-post-stage-test
   (testing "that you deliver an alert to POST when a worker changes"
     (let [stage ((:factory (get (hive-data-stages-specs) :change-post))
-                 { :in  {:worker "test"}
-                   :url "http://post-hook.com"})]
+                 {:params
+                  { :in  {:worker "test"}
+                   :url "http://post-hook.com"}
+                  })]
       ;; We want to push in some worker data.
       ;; Since it is going from both workers to the output
       (conjure/mocking [push-post-alert]
