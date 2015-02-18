@@ -154,9 +154,6 @@
   "Ensures the S3 bucket for images exists"
   [ & opt]
 
-  ;; We want to set path access
-  (s3/set-s3client-options config/s3-aws-credentials :path-style-access true)
-
   (if (= opt :delete-first)
     (s3/delete-bucket config/s3-aws-credentials hive-image-data-bucket) )
 
