@@ -102,7 +102,7 @@
         kv-pairs (map #(vector (clojure.string/replace (get % :key) (tasks-key "") "")
                                (get % :data)) items)
         result (into {} kv-pairs) ]
-    result
+    (or result {})
   ))
 
 (defn worker-config-get-tracing
